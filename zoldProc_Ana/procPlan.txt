@@ -1,0 +1,198 @@
+### ###
+
+1. check waveforms
+
+2. check processor
+
+3. write ttree instead of histograms
+
+4. SPE spectrum for different voltage
+
+A1. breakdown voltages (alpha in gas)
+A2. alpha energy resolution in gas
+
+
+
+
+######################### old (2020) #########################
+
+## sanity1 gets the SPE values ##
+
+# 1. get SPE values for different voltages and sources
+# 2. check SPE values agree for all voltages
+# 3. check again for larger dynamic range (does it still work?)
+
+# 4. get SPE charge for each voltage (fit gaussians to peaks)
+# 5. get overvoltage
+
+# 6. look at data again
+
+# look at LED data
+# map 1PE height to charge (2d histogram)
+# 
+
+####### new Plan #######
+0. example of variables and waveforms that get cut
+
+
+1. show in LED data how there is no PE spectrum,
+but slant cut 'emulates' it
+ ignore this, don't NEED to prove Zhiheng is wrong
+
+1.5 process following data
+
+vacuum - big - all voltages (no small)
+
+gas - big - all voltages
+po, cs, bkg
+
+gas - small - all voltages
+Po
+
+liquid - big - all voltages
+po, cs, bkg
+
+liquid - small - all voltages
+po, cs, bkg
+
+repeat on more dates (larger data sets)
+
+
+** must scale charges by temperature change for gas to liquid comparison
+
+** not fucking with rates or collection times right now. just spectra
+
+** process 47V data to get noise spectrum?
+
+2. Look at my 55V liquid small bkg data
+
+map peak height to charge
+extract 1PE charge
+
+show change with voltage
+
+3. (after repeating) for many voltages/systems
+sanity check by analyzing rates (do rates match DN expectation)
+
+4. physics profit
+
+########## AGAIN ##########
+proc1 - first analysis, 50k events or less, only cut data, no time information
+
+only analyze 51V, 53V data (55V is mostly DN and has worse resolution)
+
+* improvements *
+- storing all data
+- increase histogram range to 400
+- store start and end time (seconds)
+- perform SLANT cut higher up, so all data removes slant cut except for timing histograms
+
+
+########## AGAIN2 ##########
+
+I have all the rates
+
+1. ranges of alpha in gas and liquid
+	- table (5.5 MeV, He3) Fluorine: 6.740E-03 (g/cm^3)
+	"TABLES  0F  RANGE  AND  STOPPING  POWER0F  CHEMICAL  ELEMENTS   FOR CHARGEDPARTICLES  OF  ENERGY 0.05  TO  500  MeV"
+	- N2/CF4 paper, 15-20mm (5.1-5.8 MeV)
+	- G4 simulation of setup?
+
+2. XX look at alpha 'mid energy' waveforms
+	- they are OKAY
+
+3. XX calculate VBr again
+	- fold in PDE efficiency
+	- convolute it with the gaseous emission spectrum
+		- this is TOO HARD/UNCERTAINTY
+		- only rely on this for final yield?
+
+	get PE units (and Vbr with DN)
+	- look at PE height (and RC filter affects)
+		- is R 50 ohms?
+	- look at rate (match ham paper rates?)
+		- rates are good
+
+	- PDE would scale Po peak VBr to be even lower (similar effect as CA, increase V-> more CAs, higher PDE)
+
+4. look up literature for alpha yields
+
+5. estimate light collection efficiency using gaseous data
+	- for nsV (not in PE units)
+
+6. Try to energy reconstruct to see where Cs lies (in gas)
+	- need dE/dx
+	- use spectrum
+
+7. get dimension - estimate rate in Liquid
+	- wavelength in liquid --> red shifted
+
+now would have
+Vbr - proper
+	- estimate with DN rates
+collection efficiency
+
+7. literature: changes from gas to liquid in other media
+
+8. liquid data?
+
+9. fit with beta function and get response?
+10. use voltage to separate medium response annd electronics response
+
+* add quartz window *
+* look at Pb beta/gammas *
+* know the ranges for thinking about quenching *
+
+* energy min for C(alpha, n)O
+* Ar background noise vs LED?
+
+? VUV absorption ?
+	- get dependance on location (makes everything harder)
+	
+? shadowing isnt real ?
+
+** not enough stats for Bkg 51V (1200 events after cuts, 1500 before)
+
+
+? estimate Cs absorption efficiency? 
+	- getting through metal is the same
+	- just stopping power of already penetrated gammas that changes
+	- need geometry from Zhiheng
+
+electronics:
+	- splitting of signal to discriminator?
+	- R  value for RC circuit?
+		- use pulse width to estimate?? return to python calculation
+	- non linearity
+	- gas: are we way warmer and triggering on 2PE events?
+
+	- 1PE change between liquid and gas data?
+
+---- gas data ----
+51V
+bkg
+Po
+CsPo
+
+53V
+bkg
+Po
+CsPo
+
+
+---- liquid data ----
+51V
+bkg - 1205
+Cs - 1205
+Po - 1117
+CsPo - 1117
+
+53V
+bkg - 1205
+Cs - 1205
+Po - 1117
+CsPo - 1117
+
+
+
+

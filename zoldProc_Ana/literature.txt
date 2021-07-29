@@ -1,0 +1,10 @@
+#### 1995 - Pansky ####
+CF4 Gas
+
+Y, 150-220nm: ~330 Ph/MeV
+Y, 150-500nm: ~1200 Ph/MeV
+(CH4 is very weak, <1 Ph/MeV)
+
+*no secondary scintillation*
+transmits to 100nm (refs 4-6)
+

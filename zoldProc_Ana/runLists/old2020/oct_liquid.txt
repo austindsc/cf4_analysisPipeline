@@ -1,0 +1,17 @@
+#run	Nevents source resolution Pressure(psia)	temp(C)	length
+20201007_0	1	led		small	null	null	longWF
+20201007_1	1	bkg		small	null	null	longWF
+20201007_2	1	Cs137	small	null	null	longWF
+20201007_3	3	Ba133	small	null	null	longWF
+20201007_4	3	Na22	small	null	null	longWF
+20201007_5	3	Cs137	small	null	null	longWF
+20201012_0	15	bkg		small
+20201012_1	19	led		small
+20201012_2	15	Hg203	small
+20201015_1	14	led		small
+20201015_2	13	bkg		small
+20201015_3	15	Cs137	small
+20201015_4	14	Cs137	large
+20201016_3	5	led		large
+20201016_4	5	bkg		large
+20201016_5	5	Cs137	large
