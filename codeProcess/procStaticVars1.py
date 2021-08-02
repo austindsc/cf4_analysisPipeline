@@ -1,5 +1,20 @@
 #!/usr/local/bin/python3
 
+"""
+	version1 of code to process the data, and output the variables to a TTree for easy analysis later
+
+	fitting is currently commented out and not written to TTree (save time)
+
+running instructions
+
+	python3 procStaticVars1.py --run 20210729_4
+		this will fully process all the events in given run and output "outProcStatic1_20210729_4.root" to savePath variable
+
+	python3 procStaticVars.py --help
+		for other options explained
+
+"""
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -30,13 +45,13 @@ iDis = 1 # discriminator data second
 
 ###### parsing ######
 pars = argparse.ArgumentParser()
-pars.add_argument("--first", type = int, required = False, default = 0, help = "what event to start in")
-pars.add_argument("--g", type = int, required = False, default = 0, help = "what pulse group to start on")
-pars.add_argument("--N", type = int, required = False, default = 0, help = "N events to plot together, default is 0 for all events")
-pars.add_argument("--run", type = str, required = False, default = "20210726_0")
-pars.add_argument("--live", type = int, required = False, default = False, help = "do viewing with user input")
+pars.add_argument("--first", type = int, required = False, default = 0, help = "what event to start at")
+pars.add_argument("--g", type = int, required = False, default = 0, help = "what pulse group to start in (folder)")
+pars.add_argument("--N", type = int, required = False, default = -1, help = "N events to loop through. Default -1 means process all")
+pars.add_argument("--run", type = str, required = False, default = "20210726_0, randomly selected")
+pars.add_argument("--live", type = int, required = False, default = False, help = "view each pulse, with user pressing Enter")
 pars.add_argument("--view", type = int, required = False, default = False, help = "view final plots")
-pars.add_argument("--outName", type = str, required = False)
+pars.add_argument("--outName", type = str, required = False, help = "if custom naming of output file is desired, input name here (without .root suffix)")
 args=pars.parse_args()
 run = args.run
 live = bool(args.live)
@@ -44,10 +59,13 @@ view = bool(args.view)
 
 ##### output and input file #####
 savePath = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/"
-raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawdata"
+raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawdata/"
 outName = savePath + "outProcStatic1_" + str(run) + ".root"
 if args.outName != None:
 	outName = str(savePath + args.outName + str(run) + ".root")
+
+if args.live == True or args.view == True or (args.N > 0 and args.N < 1000): # avoid overwriting big files, if user is viewing/testing
+	outName = "view_"+outName
 
 hFile = gROOT.FindObject(outName)
 if hFile:
@@ -79,17 +97,18 @@ tt.Branch("qr800", qr3, "qr800/F")
 qs1 = np.empty((1), dtype = "float32")
 tt.Branch("qs50", qs1, "qs50/F")
 
-f1q = np.empty((1), dtype = "float32")
-tt.Branch("f1q", f1q, "f1q/F")
+# f1q = np.empty((1), dtype = "float32")
+# tt.Branch("f1q", f1q, "f1q/F")
 
-f1r = np.empty((1), dtype = "float32")
-tt.Branch("f1r", f1r, "f1r/F")
+# f1r = np.empty((1), dtype = "float32")
+# tt.Branch("f1r", f1r, "f1r/F")
 
-f1f = np.empty((1), dtype = "float32")
-tt.Branch("f1f", f1f, "f1f/F")
+# f1f = np.empty((1), dtype = "float32")
+# tt.Branch("f1f", f1f, "f1f/F")
 
-f1chi2 = np.empty((1), dtype = "float32")
-tt.Branch("f1chi2", f1chi2, "f1chi2/F")
+# f1chi2 = np.empty((1), dtype = "float32")
+# tt.Branch("f1chi2", f1chi2, "f1chi2/F")
+
 
 ######### BUILDING HISTS #########
 qMax = 10
@@ -119,7 +138,8 @@ if live == True:
 totalN = 0
 group = args.g
 path = os.path.join(raw_directory, run, str(group), "PMTtraces.bin")
-while os.path.exists(path) == True and totalN < args.N:
+print(path)
+while os.path.exists(path) == True:
 
 	## loading data
 	data = rb.ReadBlock(path)
@@ -132,9 +152,10 @@ while os.path.exists(path) == True and totalN < args.N:
 	offset = data.get('v_offset')
 	
 	# loop through pulses (aka events), loops through all events if args.N == 0
-	for ind in range(args.first, (lambda: (args.first + args.N, len(traces))[args.N > len(traces) or args.N == 0])()):
+	# for ind in range(args.first, (lambda: (args.first + args.N, len(traces))[args.N > len(traces) or args.N == 0])()):
+	for ind in range(args.first, len(traces)):
 		totalN = totalN + 1
-		if totalN > args.N:
+		if totalN > args.N and args.N != -1:
 			break
 		if ind%1000 == 0: # printing helper
 			print("at event", ind)
@@ -200,6 +221,7 @@ while os.path.exists(path) == True and totalN < args.N:
 		# 2 - fall time (Tl)
 		# 3 - shift
 		# 4 - baseline
+		"""
 		pulse1 = TF1("pulse1", "[0]/[2] * (TMath::Exp(-(x-[3])/([2] + [1])) - TMath::Exp(-(x - [3])/[1])) + [4]", spec.GetPositionX()[0] - 300, spec.GetPositionX()[0] + 800)
 		pulse1.SetParameters(spec.GetPositionY()[0]*200, 70, 80, minTime, -blines.get('v'))
 		pulse1.SetParNames("area", "riseT", "fallT", "shift", "endBline")
@@ -211,6 +233,7 @@ while os.path.exists(path) == True and totalN < args.N:
 		pulse1.SetParLimits(4, -blines.get('v'), -blines.get('v'))
 
 		hwf.Fit(pulse1, fitOpt, "goff", spec.GetPositionX()[0] - 100, spec.GetPositionX()[0] + 600)
+		"""
 
 		####### fill TTreee #######
 		blineVal[0] = float(blines.get('v'))
@@ -220,20 +243,22 @@ while os.path.exists(path) == True and totalN < args.N:
 		qr3[0] = qRange3
 		qs1[0] = qSmart1
 		
+		"""
 		f1q[0] = pulse1.GetParameter(0)
 		f1r[0] = pulse1.GetParameter(1)
 		f1f[0] = pulse1.GetParameter(2)
 		f1chi2[0] = pulse1.GetChisquare()
+		"""
 
 		tt.Fill()
 
 		###### filling histograms, TTree with values #####
-		qFit = pulse1.GetParameter(0)
-		chi2Fit = pulse1.GetChisquare()
+		# qFit = pulse1.GetParameter(0)
+		# chi2Fit = pulse1.GetChisquare()
 
-		hq_fAll.Fill(qFit)
-		if chi2Fit <= 2.0:
-			hq_fChi2.Fill(qFit)
+		# hq_fAll.Fill(qFit)
+		# if chi2Fit <= 2.0:
+		# 	hq_fChi2.Fill(qFit)
 
 		## filling simple histograms
 		hq_range1.Fill(qRange)
@@ -242,7 +267,7 @@ while os.path.exists(path) == True and totalN < args.N:
 		if live == True:
 			# root drawing
 			# hwf.Draw("hist")
-			pulse1.Draw("same")
+			# pulse1.Draw("same")
 			# flat1.Draw("hist same")
 
 			c1.Modified()
@@ -255,10 +280,10 @@ while os.path.exists(path) == True and totalN < args.N:
 			print("blines = ", blines)
 			print("qRange = ", qRange)
 			print("qSmart = ", qSmart1)
-			print("Qfit = ", qFit, "    ch2 = ", chi2Fit, "   NDF = ", pulse1.GetNDF())
+			# print("Qfit = ", qFit, "    ch2 = ", chi2Fit, "   NDF = ", pulse1.GetNDF())
 			input()
 
-			del pulse1
+			# del pulse1
 			# plt.show()
 			# ax0.clear() # somehow reset but keep last N pulses
 

@@ -81,26 +81,28 @@ speStuff getSPEval(TTree * tt, bool verbose = false){
   return val1;
 }
 
-int investStatic1Gas(){
-  TFile * f4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_0.root");
+int static1Liquid_gammas(){
+
+  //// getting breakdown voltages ////
+  TFile * f4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_0.root");
   TTree * tt4 = (TTree*)f4->Get("tt");
 
-  TFile * f5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_1.root");
+  TFile * f5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_1.root");
   TTree * tt5 = (TTree*)f5->Get("tt");
 
-  TFile * f6 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_2.root");
+  TFile * f6 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_2.root");
   TTree * tt6 = (TTree*)f6->Get("tt");
 
-  speStuff v4 = getSPEval(tt4, true);
-  speStuff v5 = getSPEval(tt5, true);
-  speStuff v6 = getSPEval(tt6, true);
+  speStuff v4 = getSPEval(tt4);
+  speStuff v5 = getSPEval(tt5);
+  speStuff v6 = getSPEval(tt6);
 
   // liquid data voltages
   v4.V = 48.25;
   v4.eV = 0.01;
   v5.V = 49.25;
   v5.eV = 0.01;
-  v6.V = 50.25;
+  v6.V = 50.26;
   v6.eV = 0.01;
 
   Double_t aQr[3] = { v4.spe, v5.spe, v6.spe };
@@ -113,27 +115,13 @@ int investStatic1Gas(){
   TF1 * fLine = new TF1("fLine", "[1]*(x - [0])", 0, 55);
   TF1 * flineVbr_qr = new TF1("flineVbr_qr", "fLine", 0, 55);
   flineVbr_qr->SetParameters(48., 0.25);
-  tgVbr_qr->Fit("flineVbr_qr", "MR", "");
+  tgVbr_qr->Fit("flineVbr_qr", "Q0MR", "");
 
-  // can't get SPE from gas data 
-  // 1. digitizer is 1V
-  // will assume actual SiPM temp also unchanged (no pressure reading either)
-
-  //////// large trigger stuff ////////
-  // load large trigger data
-  TFile * fga4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_0.root");
-  TTree * ttga4 = (TTree*)fga5->Get("tt");
-
-  TFile * fga5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_1.root");
-  TTree * ttga4 = (TTree*)fga5->Get("tt");
-
-  TFile * fga6 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_2.root");
-  TTree * ttga6 = (TTree*)fga6->Get("tt");
-
-  /// drawing ///
   gROOT->Reset();
   gStyle->SetOptStat(11);
   gStyle->SetOptFit(1);
+  
+  /*
   auto c3 = new TCanvas();
 
   tgVbr_qr->SetTitle("SPE charge vs Voltage");
@@ -147,31 +135,53 @@ int investStatic1Gas(){
   tgVbr_qr->GetYaxis()->SetRangeUser(0, 1.5);
 
   tgVbr_qr->Draw("APE");
-  //flineVbr_qr->Draw("same");
+  flineVbr_qr->Draw("same");
 
   c3->Update();
-
-  /*
-  auto c2 = new TCanvas();
-  hqr5->SetTitle("Comparing charge variables");
-  hqr5->GetXaxis()->SetTitle("charge (Vns)");
-  hqr5->Draw("hist");
-
-  hqs5->SetLineColor(3);
-  hqs5->Draw("hist same");
-
-  hqf5->SetLineColor(2);
-  hqf5->Draw("hist same");
-
-  auto leg2 = new TLegend();
-  leg2->AddEntry(hqr5, "fixed range Q", "L");
-  leg2->AddEntry(hqs5, "'smart' range Q", "L");
-  leg2->AddEntry(hqf5, "fit Q", "L");
-  leg2->Draw("same");
-
-  c2->SetGrid(1);
-  c2->Update();
   */
+
+  //// done getting breakdown voltages ////
+
+
+  //////// large trigger stuff ////////
+
+  // load large trigger data, liquid
+  TFile * fla4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_7.root");
+  TTree * ttla4 = (TTree*)fla4->Get("tt");
+
+  TFile * fla5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_8.root");
+  TTree * ttla5 = (TTree*)fla5->Get("tt");
+
+  TFile * flag5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210729_4.root");
+  TTree * ttlag5 = (TTree*)flag5->Get("tt");
+  cout << ttlag5->GetEntries() << endl;
+
+  ttlag5->Show(0);
+
+  auto c5 = new TCanvas();
+  TH1F * hla4 = new TH1F("hla4", "hla4", 150, 0, 150);
+  hla4->SetTitle("Liquid alpha scintillation");
+  hla4->GetXaxis()->SetTitle("NPE");
+  ttla4->Draw(("qs50 * " + to_string(1/v4.spe) + " >> hla4").c_str(), "", "");
+
+  TH1F * hla5 = new TH1F("hla5", "hla5", 150, 0, 150);
+  hla5->SetLineColor(3);
+  ttla5->Draw(("qs50 * " + to_string(1/v5.spe) + " >> hla5").c_str(), "", "same");
+
+  TH1F * hlag5 = new TH1F("hlag5", "hlag5", 150, 0, 150);
+  hlag5->SetLineColor(6);
+  ttlag5->Draw(("qs50 * " + to_string(1/v5.spe) + " >> hlag5").c_str(), "", "same");
+
+  auto leg5 = new TLegend();
+  leg5->AddEntry(hla4, "4V, alpha", "L");
+  leg5->AddEntry(hla5, "5V, alpha", "L");
+  leg5->AddEntry(hlag5, "5V, gamma (Na22)", "L");
+  leg5->Draw("same");
+
+  c5->SetLogy();
+  c5->Update();
+
+  /// drawing ///
 
 	return 0;
 }

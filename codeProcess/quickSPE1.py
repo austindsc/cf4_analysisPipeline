@@ -1,5 +1,11 @@
 #!/usr/local/bin/python3
 
+
+"""
+	this code directly plots SPE distributions from the data (good for checking SPE triggered data, with correct digitizer range)
+"""
+
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt

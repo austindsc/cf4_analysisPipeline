@@ -1,5 +1,9 @@
 #!/usr/local/bin/python3
 
+"""
+	use this for viewing waveforms. Minimal processing done here. good 'skeleton' for viewing data
+"""
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt

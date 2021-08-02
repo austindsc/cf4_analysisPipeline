@@ -1,5 +1,9 @@
 #!/usr/local/bin/python3
 
+"""
+	some old code used to work on fitting the pulses
+"""
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt

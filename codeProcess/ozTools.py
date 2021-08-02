@@ -1,3 +1,7 @@
+"""
+	A variety of processing tools used to analyze the waveforms. No fitting done here
+"""
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -99,7 +103,7 @@ def toFlatRangeIntegrate(data, bline, blineRMS, extra):
 		tot = height + tot
 	return tot, early, late
 
-def  minAverage(data, bline, spread):
+def  minAverage(data, bline, spread): # average the data points around the minimum value
 	iMin = np.argmin(data)
 
 	return -(np.mean(data[iMin - spread:iMin + spread]) - bline)
