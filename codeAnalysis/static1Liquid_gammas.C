@@ -154,32 +154,41 @@ int static1Liquid_gammas(){
 
   TFile * flag5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210729_4.root");
   TTree * ttlag5 = (TTree*)flag5->Get("tt");
-  cout << ttlag5->GetEntries() << endl;
 
-  ttlag5->Show(0);
+  TFile * flag5Co = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210729_6.root");
+  TTree * ttlag5Co = (TTree*)flag5Co->Get("tt");
+
+  TH1F * hlaN22 = new TH1F("hlaN22", "hlaN22", 150, 0, 1.);
+  ttlag5->Draw("hbline_min:qs50 >> hlaN22", "", "");
 
   auto c5 = new TCanvas();
-  TH1F * hla4 = new TH1F("hla4", "hla4", 150, 0, 150);
+  TH1F * hla4 = new TH1F("hla4", "hla4", 150, 0, 300);
   hla4->SetTitle("Liquid alpha scintillation");
   hla4->GetXaxis()->SetTitle("NPE");
   ttla4->Draw(("qs50 * " + to_string(1/v4.spe) + " >> hla4").c_str(), "", "");
 
-  TH1F * hla5 = new TH1F("hla5", "hla5", 150, 0, 150);
+  TH1F * hla5 = new TH1F("hla5", "hla5", 150, 0, 300);
   hla5->SetLineColor(3);
   ttla5->Draw(("qs50 * " + to_string(1/v5.spe) + " >> hla5").c_str(), "", "same");
 
-  TH1F * hlag5 = new TH1F("hlag5", "hlag5", 150, 0, 150);
+  TH1F * hlag5 = new TH1F("hlag5", "hlag5", 150, 0, 300);
   hlag5->SetLineColor(6);
   ttlag5->Draw(("qs50 * " + to_string(1/v5.spe) + " >> hlag5").c_str(), "", "same");
+
+  TH1F * hlag5Co = new TH1F("hlag5Co", "hlag5Co", 150, 0, 300);
+  hlag5Co->SetLineColor(7);
+  ttlag5Co->Draw(("qs50 * " + to_string(1/v5.spe) + " >> hlag5Co").c_str(), "", "same");
 
   auto leg5 = new TLegend();
   leg5->AddEntry(hla4, "4V, alpha", "L");
   leg5->AddEntry(hla5, "5V, alpha", "L");
   leg5->AddEntry(hlag5, "5V, gamma (Na22)", "L");
+  leg5->AddEntry(hlag5Co, "5V, gamma (Co57)", "L");
   leg5->Draw("same");
 
   c5->SetLogy();
   c5->Update();
+
 
   /// drawing ///
 
