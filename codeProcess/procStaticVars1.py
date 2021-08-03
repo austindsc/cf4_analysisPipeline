@@ -12,7 +12,6 @@ running instructions
 
 	python3 procStaticVars.py --help
 		for other options explained
-
 """
 
 import numpy as np
@@ -48,7 +47,7 @@ pars = argparse.ArgumentParser()
 pars.add_argument("--first", type = int, required = False, default = 0, help = "what event to start at")
 pars.add_argument("--g", type = int, required = False, default = 0, help = "what pulse group to start in (folder)")
 pars.add_argument("--N", type = int, required = False, default = -1, help = "N events to loop through. Default -1 means process all")
-pars.add_argument("--run", type = str, required = False, default = "20210726_0, randomly selected")
+pars.add_argument("--run", type = str, required = False, default = "20210726_0", help = "randomly selected default run")
 pars.add_argument("--live", type = int, required = False, default = False, help = "view each pulse, with user pressing Enter")
 pars.add_argument("--view", type = int, required = False, default = False, help = "view final plots")
 pars.add_argument("--outName", type = str, required = False, help = "if custom naming of output file is desired, input name here (without .root suffix)")
@@ -65,13 +64,13 @@ if args.outName != None:
 	outName = str(savePath + args.outName + str(run) + ".root")
 
 if args.live == True or args.view == True or (args.N > 0 and args.N < 1000): # avoid overwriting big files, if user is viewing/testing
-	outName = "view_"+outName
+	outName = savePath + "VIEW_outProcStatic1_" + str(run) + ".root"
 
 hFile = gROOT.FindObject(outName)
 if hFile:
 	hFile.Close()
 hFile = TFile(outName, 'RECREATE', 'bprocStaticVars1.py output file')
-print("writing ROOT file to:", outName)
+print("writing ROOT file to: ", outName, "\n")
 
 ### defining TTree and all variables ###
 tt = TTree("tt", "proc static variables, run:" + str(run))
@@ -146,6 +145,7 @@ while os.path.exists(path) == True:
 	group = group + 1
 	path = os.path.join(raw_directory, run, str(group), "PMTtraces.bin")
 
+	# data is a dictionairy, you can print all its members (google python dictionairy)
 	# getting pulse information
 	traces = data.get('traces')
 	vScale = data.get('v_scale')
@@ -169,7 +169,7 @@ while os.path.exists(path) == True:
 
 		gap = 1 # pointless to multiply by dt, which is just 1ns
 		# gap = data.get('dt')[ind, iSipm] * 10**9
-		time = np.array(range(len(s1))) * gap #+ data.get("t0")[ind, iSipm]
+		time = np.array(range(len(s1v))) * gap #+ data.get("t0")[ind, iSipm]
 
 		# ax0.plot(time, s1v, alpha = 0.4)
 		# ax0.plot(time, d1)
@@ -250,7 +250,7 @@ while os.path.exists(path) == True:
 		f1chi2[0] = pulse1.GetChisquare()
 		"""
 
-		tt.Fill()
+		tt.Fill() #adding a new row to the ttree (saving the data)
 
 		###### filling histograms, TTree with values #####
 		# qFit = pulse1.GetParameter(0)
