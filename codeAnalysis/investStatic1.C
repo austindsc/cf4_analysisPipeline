@@ -82,16 +82,17 @@ speStuff getSPEval(TTree * tt, bool verbose = false){
 }
 
 int investStatic1(){
-  TFile * f4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_0.root");
+  TFile * f4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210726_0.root");
   TTree * tt4 = (TTree*)f4->Get("tt");
 
-  TFile * f5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_1.root");
+  TFile * f5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210726_1.root");
   TTree * tt5 = (TTree*)f5->Get("tt");
 
-  TFile * f6 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_2.root");
+  TFile * f6 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210726_2.root");
   TTree * tt6 = (TTree*)f6->Get("tt");
 
-  speStuff v4 = getSPEval(tt4);
+
+  speStuff v4 = getSPEval(tt4, 1);
   speStuff v5 = getSPEval(tt5);
   speStuff v6 = getSPEval(tt6);
 
@@ -140,13 +141,13 @@ int investStatic1(){
 
   //////// large trigger stuff ////////
   // load large trigger data, gas
-  TFile * fga4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_0.root");
+  TFile * fga4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210723_0.root");
   TTree * ttga4 = (TTree*)fga4->Get("tt");
 
-  TFile * fga5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_1.root");
+  TFile * fga5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210723_1.root");
   TTree * ttga5 = (TTree*)fga5->Get("tt");
 
-  TFile * fga6 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210723_2.root");
+  TFile * fga6 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210723_2.root");
   TTree * ttga6 = (TTree*)fga6->Get("tt");
 
   auto c4 = new TCanvas();
@@ -181,13 +182,13 @@ int investStatic1(){
   c4->Update();
 
   // load large trigger data, liquid
-  TFile * fla4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_7.root");
+  TFile * fla4 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210726_7.root");
   TTree * ttla4 = (TTree*)fla4->Get("tt");
 
-  TFile * fla5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210726_8.root");
+  TFile * fla5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210726_8.root");
   TTree * ttla5 = (TTree*)fla5->Get("tt");
 
-  TFile * flag5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/outProcStatic1_20210727_2.root");
+  TFile * flag5 = new TFile("/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/summerAnalysis/outProcStatic1_20210727_2.root");
   TTree * ttlag5 = (TTree*)flag5->Get("tt");
 
   auto c5 = new TCanvas();
