@@ -11,19 +11,17 @@ load in all 'mega' data files
 for the 1.25cm run, remove events with bad baseline or end of pulse too late
 */
 
-int gasComp2(){
-	// TFile * fmed = TFile::Open("../procData/outProcStatic1_20210812_1.root", "READ");
-	// TTree * tmed = (TTree*) fmed->Get("tt");
-	// tmed->Show(0);
+int gasCompMegaCuts(){
 
-	TFile * fAmega = TFile::Open("../procData/outProcStatic2_20210723_9.root", "READ");
+	// 3V data
+	TFile * fAmega = TFile::Open("../procData/outProcStatic2_20210723_8.root", "READ");
 	TTree * tAmega = (TTree*) fAmega->Get("tt");
 	tAmega->Show(0);
 
-	TFile * fBmega = TFile::Open("../procData/outProcStatic2_20210803_10.root", "READ");
+	TFile * fBmega = TFile::Open("../procData/outProcStatic2_20210803_9.root", "READ");
 	TTree * tBmega = (TTree*) fBmega->Get("tt");
 
-	TFile * fCmega = TFile::Open("../procData/outProcStatic2_20210812_5.root", "READ");
+	TFile * fCmega = TFile::Open("../procData/outProcStatic2_20210812_4.root", "READ");
 	TTree * tCmega = (TTree*) fCmega->Get("tt");
 
 	///////////// building histograms /////////////
@@ -57,10 +55,9 @@ int gasComp2(){
 	tBmega->Draw("qs50>>hBmega_qsBoth", scBoth.c_str(), "goff");
 
 
-
-
 	///////////////// plotting /////////////////
 
+	TLegend * leg1 = new TLegend(0.85, 0.85, "Comparing cuts", "ARC NDC");
 
 	//// runB qS cuts ////
 	hBmega_qsRaw->SetLineColor(1);
@@ -75,7 +72,10 @@ int gasComp2(){
 	hBmega_qsBoth->SetLineColor(4);
 	hBmega_qsBoth->Draw("hist same");
 
-	// hAmega_qS->Draw("hist");
+	leg1->AddEntry(hBmega_qsRaw, "no cuts", "l");
+	leg1->AddEntry(hBmega_qsBline, "baseline cut", "l");
+	leg1->AddEntry(hBmega_qsTend, "time end", "l");
+	leg1->AddEntry(hBmega_qsBoth, "both cuts", "l");
 
 	return 0;
 }

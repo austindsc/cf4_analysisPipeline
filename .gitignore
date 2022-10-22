@@ -1,4 +1,12 @@
 
+*.out
+*.root
+*.DS_store
+*__pycache__*
+
+SBCcode
+zold*
+
 procData/VIEW*
 SBCcode/*
 

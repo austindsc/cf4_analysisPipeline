@@ -18,6 +18,8 @@ for the 1.25cm run, remove events with bad baseline or end of pulse too late
 1. get SPE values from other files
 3. 
 
+???? WHERE DOES +1 IN SCALING COME FROM (in picking bin) ????
+
 
 */
 
@@ -40,7 +42,7 @@ int liqAlphaYield1(){
 	speStuff spe5v[3];
 	for(int irun = 0; irun < 3; irun++){
 		TTree * t = trees5V[irun];
-		bool verbose = 0;
+		bool verbose = 1;
 		if (verbose == 1) new TCanvas();
 		speStuff speInfo = getSPEval(t, 0.1, verbose);
 		spe5v[irun] = speInfo;
@@ -83,23 +85,29 @@ int liqAlphaYield1(){
 	TH1* hqr[6] = {hAqr200, hBqr200, hCqr200, hiAqr200, hiBqr200, hiCqr200};
 
 	///////// scaling and manipulating /////////
-	float scaleFromPE = 2.6; // match areas from 2.6PE onwards (3PE bin)
+	Double_t scaleFromPE = 5; // match areas from 3 onwards (3PE bin)
+	Double_t endFit = 10;
 
 	for(int irun = 0; irun < 6; irun++){
 		TH1 * h = hqr[irun];
-		float scaleVal = h->Integral(h->GetXaxis()->FindBin(scaleFromPE), h->GetNbinsX());
+		Double_t scaleVal = h->Integral(h->GetXaxis()->FindBin(scaleFromPE), h->GetXaxis()->FindBin(endFit));
 		h->Scale(1/scaleVal);
-		// h->Scale(1/h->GetBinWidth(10));
 	}
 
-	///////// PDF work (all manual fitting) /////////
+	// float testHist1 = 0;
+	// for(int i = scaleFromPE; i <= endFit; i++){
+	// 	testHist1 += hiAqr200->GetBinContent(hiAqr200->GetXaxis()->FindBin(i));
+	// }
+	// cout << "test hist1 val = " << testHist1 << endl;
 
-	auto c1 = new TCanvas();
+	///////// PDF work and Fitting /////////
+
 	int pMade = 25;
 	float eff = 0.1;
 	Double_t sipmSide = 6*2 + 0.5; // in mm
 	Double_t dA = 25; // in mm
 	Double_t dB = 12.5; // in mm
+	Double_t dC = 19.0; // in mm
 
 	TF1 * fA = new TF1("fA", MFF::myBinomial, 0, 30, 2);
 	fA->SetParameters(eff, pMade);
@@ -110,64 +118,100 @@ int liqAlphaYield1(){
 	// TF1 * f2 = new TF1("f2", MFF::myBinomial, 0, 30, 2);
 	// f2->SetParameters(eff, pMade*2);
 
-	float bFactor = MFF::omegaSquare(&dB, &sipmSide)/MFF::omegaSquare(&dA, &sipmSide);
-	TF1 * fB = new TF1("fB", MFF::myBinomial, 0, 30, 2);
-	fB->SetParameters(eff, bFactor * pMade);
+	// float bFactor = MFF::omegaSquare(&dB, &sipmSide)/MFF::omegaSquare(&dA, &sipmSide);
+	// TF1 * fB = new TF1("fB", MFF::myBinomial, 0, 30, 2);
+	// fB->SetParameters(eff, bFactor * pMade);
 
 	///// poisson fitting
-	TF1 * fpoisA = new TF1("fpoisA", MFF::scaledPoisson,-0.5, 30, 2);
+	TF1 * fpoisA = new TF1("fpoisA", MFF::scaledPoisson,-0.5, 30, 3);
 	fpoisA->SetParameter(0, 2.5);
 	fpoisA->SetParameter(1, scaleFromPE);
 	fpoisA->SetParLimits(1, scaleFromPE, scaleFromPE);
-	hiAqr200->Fit("fpoisA", "+M0", "", scaleFromPE, 15);
+	fpoisA->SetParameter(2, endFit);
+	fpoisA->SetParLimits(2, endFit, endFit);
+	hiAqr200->Fit("fpoisA", "+M0", "", scaleFromPE, endFit);
 
-	TF1 * fpoisB = new TF1("fpoisB", MFF::scaledPoisson,-0.5, 30, 2);
-	fpoisB->SetParameter(0, 3.);
+	// float testFunc = 0;
+	// float testHist = 0;
+	// for(int i = scaleFromPE; i <= endFit; i++){
+	// 	testFunc += fpoisA->Eval(i);
+	// 	testHist += hiAqr200->GetBinContent(hiAqr200->GetXaxis()->FindBin(i));
+	// }
+	// cout << "test func val = " << testFunc << endl;
+	// cout << "test hist val = " << testHist << endl;
+
+	TF1 * fpoisB = new TF1("fpoisB", MFF::scaledPoisson,-0.5, 30, 3);
+	fpoisB->SetParameter(0, 4.5);
 	fpoisB->SetParameter(1, scaleFromPE);
 	fpoisB->SetParLimits(1, scaleFromPE, scaleFromPE);
-	hiBqr200->Fit("fpoisB", "+M0", "", scaleFromPE, 15);
+	fpoisB->SetParameter(2, endFit);
+	fpoisB->SetParLimits(2, endFit, endFit);
+	hiBqr200->Fit("fpoisB", "+M0", "", scaleFromPE, endFit);
 
-	TF1 * fpoisC = new TF1("fpoisC", MFF::scaledPoisson,-0.5, 30, 2);
-	fpoisC->SetParameter(0, 4.);
+	TF1 * fpoisC = new TF1("fpoisC", MFF::scaledPoisson,-0.5, 30, 3);
+	fpoisC->SetParameter(0, 3);
 	fpoisC->SetParameter(1, scaleFromPE);
 	fpoisC->SetParLimits(1, scaleFromPE, scaleFromPE);
-	hiCqr200->Fit("fpoisC", "+M0", "", scaleFromPE, 20);
+	fpoisC->SetParameter(2, endFit);
+	fpoisC->SetParLimits(2, endFit, endFit);
+	hiCqr200->Fit("fpoisC", "+M0", "", scaleFromPE, endFit);
+
+	///// R2 fitting /////
+
+	Double_t push = 0.; // in mm
+	Double_t xr[3] = { dA + push, dC + push, dB + push }; //opposite order {A, C, B}
+	Double_t testD = 0;
+	Double_t er = 0.2; // multiply by 1/R^2
+	Double_t exr[3] = { er, er, er }; //opposite order
+	Double_t yMu[3] = { fpoisA->GetParameter(0), fpoisC->GetParameter(0), fpoisB->GetParameter(0) };
+	Double_t eyMu[3]= { fpoisA->GetParError(0), fpoisC->GetParError(0), fpoisB->GetParError(0) };
+	TGraphErrors * tgR = new TGraphErrors(3, xr, yMu, exr, eyMu);
+
+	gStyle->SetOptFit(1111);
+	// actual correct function
+	TF1 * fLYr_omega = new TF1("fLYr_omega", MFF::fLY_omegaSquare, 0, 60, 2);
+	fLYr_omega->SetParameter(0, sipmSide);
+	fLYr_omega->SetParLimits(0, sipmSide, sipmSide);
+	tgR->Fit("fLYr_omega", "+M0", "", 0, 60);
+
+	// actual correct function
+	TF1 * fLYr_omega2 = new TF1("fLYr_omega2", MFF::fLY_omegaSquare2, 0, 60, 3);
+	fLYr_omega2->SetParameter(0, sipmSide);
+	fLYr_omega2->SetParLimits(0, sipmSide, sipmSide);
+	fLYr_omega2->SetParameter(1, 300.);
+	fLYr_omega2->SetParameter(2, 40.);
+	tgR->Fit("fLYr_omega2", "+M0", "same", 0, 60);
+
+	// with attenuation
+	// TF1 * fLYr_atten = new TF1("fLYr_atten", MFF::fLY_omegaAttenuation, 10, 60, 3);
+	// fLYr_atten->SetParameter(0, sipmSide);
+	// fLYr_atten->SetParLimits(0, sipmSide, sipmSide);
+
+	// fLYr_atten->SetParameter(1, 4 * fLYr_omega->GetParameter(1)); // LY factor
+	// fLYr_atten->SetParameter(2, 20); // attenuation k (1/mm)
+	// tgR->Fit("fLYr_atten", "+MN0", "", 0, 40);
+
+	TCanvas * cR = new TCanvas();
+	tgR->SetMarkerStyle(20);
+	tgR->Draw("AP");
+	fLYr_omega->SetLineColor(2);
+	fLYr_omega->Draw("same");
+
+	fLYr_omega2->SetLineColor(3);
+	fLYr_omega2->Draw("same");
+
+	tgR->GetXaxis()->SetTitle("True Distance (mm)");
+	tgR->GetYaxis()->SetTitle("Poisson fit average PE");
+	tgR->SetTitle("LCF4 - alpha - LY vs Distance");
+
+	cR->Update();
+
+	// fLYr_atten->Draw("same");
 
 	////////// drawing //////////////
-	hiAqr200->SetLineColor(1);
-	hiAqr200->Draw("hist");
-
-	// fA->SetLineStyle(9);
-	// fA->SetLineColor(1);
-	// fA->Draw("same");
-
-	hiBqr200->SetLineColor(3);
-	hiBqr200->Draw("hist same");
-
-	hiCqr200->SetLineColor(4);
-	hiCqr200->Draw("hist same");
-
-	// fB->SetLineColor(4);
-	// fB->SetLineStyle(9);
-	// fB->Draw("same");
-
-	// f1->SetLineColor(2);
-	// f1->Draw("same");
-
-	// f2->SetLineColor(3);
-	// f2->Draw("same");
-
-	fpoisA->Draw("same");
-	fpoisB->Draw("same");
-	fpoisC->Draw("same");
-
-	c1->SetLogy();
-	
-	// return 0;
-
-	/////// drawing ///////
 	TCanvas * c2 = new TCanvas();
-	TLegend * leg1 = new TLegend(0.85, 0.85, "Liquid spectra", "ARC NDC");
+	TLegend * leg1 = new TLegend();
+	gStyle->SetOptStat(0);
 
 	hAqr200->GetXaxis()->SetTitle("PE");
 	hAqr200->SetTitle("Liquid-alpha, comparing Runs");
@@ -180,6 +224,57 @@ int liqAlphaYield1(){
 	hCqr200->SetLineColor(4);
 	hCqr200->Draw("hist same");
 
+	leg1->SetTextSize(0.04);
+	leg1->SetHeader("Source - SiPM Distance");
+	leg1->AddEntry(hAqr200, "25 mm", "L");
+	leg1->AddEntry(hCqr200, "19 mm", "L");
+	leg1->AddEntry(hBqr200, "12.5 mm", "L");
+	leg1->Draw("same");
+
 	c2->SetLogy();
+
+	///// drawing /////
+	TCanvas * c1 = new TCanvas();
+
+	hiAqr200->SetFillColorAlpha(1, 0.3);
+	hiAqr200->Draw("hist");
+	// fpoisA->SetLineColor(1);
+	fpoisA->Draw("same");
+	c1->SetLogy();
+
+	TCanvas * c1n2 = new TCanvas();
+	hiBqr200->SetFillColorAlpha(3, 1);
+	hiBqr200->Draw("hist");
+	fpoisB->Draw("same");
+
+	c1n2->SetLogy();
+	c1n2->Update();
+
+	TCanvas * c1n3 = new TCanvas();
+	hiCqr200->SetFillColorAlpha(4, 1);
+	hiCqr200->Draw("hist same");
+	fpoisC->Draw("same");
+
+	c1n3->SetLogy();
+
+
+	// fA->SetLineStyle(9);
+	// fA->SetLineColor(1);
+	// fA->Draw("same");
+
+	// fB->SetLineColor(4);
+	// fB->SetLineStyle(9);
+	// fB->Draw("same");
+
+	// f1->SetLineColor(2);
+	// f1->Draw("same");
+
+	// f2->SetLineColor(3);
+	// f2->Draw("same");
+
+
+	// fpoisB->SetLineColor(3);
+	// fpoisC->SetLineColor(4);
+
 	return 0;
 }

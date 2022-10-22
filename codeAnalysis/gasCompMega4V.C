@@ -45,19 +45,20 @@ Double_t omegaSimpleSquare(Double_t *x, Double_t *par){
 	return sipmArea / circleArea;
 }
 
-int gasCompMega(){
+int gasCompMega4V(){
 	// TFile * fmed = TFile::Open("../procData/outProcStatic1_20210812_1.root", "READ");
 	// TTree * tmed = (TTree*) fmed->Get("tt");
 	// tmed->Show(0);
 
-	TFile * fAmega = TFile::Open("../procData/outProcStatic2_20210723_8.root", "READ");
+	// 4V
+	TFile * fAmega = TFile::Open("../procData/outProcStatic2_20210723_9.root", "READ");
 	TTree * tAmega = (TTree*) fAmega->Get("tt");
 	tAmega->Show(0);
 
-	TFile * fBmega = TFile::Open("../procData/outProcStatic2_20210803_9.root", "READ");
+	TFile * fBmega = TFile::Open("../procData/outProcStatic2_20210803_10.root", "READ");
 	TTree * tBmega = (TTree*) fBmega->Get("tt");
 
-	TFile * fCmega = TFile::Open("../procData/outProcStatic2_20210812_4.root", "READ");
+	TFile * fCmega = TFile::Open("../procData/outProcStatic2_20210812_5.root", "READ");
 	TTree * tCmega = (TTree*) fCmega->Get("tt");
 
 	///////////// building histograms /////////////
@@ -107,27 +108,26 @@ int gasCompMega(){
 
 	//---- fitting A ----//
 	// TF1 * fAg1 = new TF1("fAg1", "gaus", 175, 230);
-	TF1 * fAg1 = new TF1("fAg1", "gaus", 100, 175);
+	TF1 * fAg1 = new TF1("fAg1", "gaus", 120, 220);
 	hAmega_qsBoth->Fit("fAg1", "+RMN0", "goff");
 
 	// TF1 * fAg2 = new TF1("fAg2", "gaus", fAg1->GetParameter(1) - scaleFitBack*fAg1->GetParameter(2), fAg1->GetParameter(1)+ scaleFitForward*fAg1->GetParameter(2));
-	TF1 * fAg2 = new TF1("fAg2", "gaus", 60, fAg1->GetParameter(1) - scaleFitForward*fAg1->GetParameter(2));
+	TF1 * fAg2 = new TF1("fAg2", "gaus", startFit2, fAg1->GetParameter(1) - scaleFitForward*fAg1->GetParameter(2));
 	hAmega_qsBoth->Fit("fAg2", "+RMN0", "goff");
 
 	//---- fitting B ----//
-	// TF1 * fBg1 = new TF1("fBg1", "gaus", 250, 600);	
-	TF1 * fBg1 = new TF1("fBg1", "gaus", 150, 400);	
+	TF1 * fBg1 = new TF1("fBg1", "gaus", 250, 600);	
 	hBmega_qsRaw->Fit("fBg1", "+RMN0", "goff");
 
-	TF1 * fBg2 = new TF1("fBg2", "gaus", 80, 300);	
+	TF1 * fBg2 = new TF1("fBg2", "gaus", startFit2, 300);	
 	hBmega_qsBoth->Fit("fBg2", "+RMN0", "goff");
 
 	//---- fitting C ----//
-	TF1 * fCg1 = new TF1("fCg1", "gaus", 150, 250);
+	TF1 * fCg1 = new TF1("fCg1", "gaus", 200, 350);
 	hCmega_qsBoth->Fit("fCg1", "+RMN0", "goff");
 
 	// TF1 * fCg2 = new TF1("fCg2", "gaus", fCg1->GetParameter(1) - scaleFitBack*fCg1->GetParameter(2), fCg1->GetParameter(1)+ scaleFitForward*fCg1->GetParameter(2));
-	TF1 * fCg2 = new TF1("fCg2", "gaus", 80, fCg1->GetParameter(1) - scaleFitForward*fCg1->GetParameter(2));
+	TF1 * fCg2 = new TF1("fCg2", "gaus", startFit2, fCg1->GetParameter(1) - scaleFitForward*fCg1->GetParameter(2));
 	hCmega_qsBoth->Fit("fCg2", "+RMN0", "goff");
 
 	// how to improve this strategy

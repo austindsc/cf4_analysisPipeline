@@ -50,7 +50,7 @@ int gasCompMedium(){
 	// TTree * tmed = (TTree*) fmed->Get("tt");
 	// tmed->Show(0);
 
-	TFile * fAmed = TFile::Open("../procData/outProcStatic2_20210723_3.root", "READ");
+	TFile * fAmed = TFile::Open("../procData/outProcStatic1_20210723_3.root", "READ");
 	TTree * tAmed = (TTree*) fAmed->Get("tt");
 	tAmed->Show(0);
 
@@ -61,7 +61,7 @@ int gasCompMedium(){
 	TTree * tCmed = (TTree*) fCmed->Get("tt");
 
 	///////////// building histograms /////////////
-	int nqBins = 200;
+	int nqBins = 300;
 	int rLowQ = -10;
 	int rHiQ = 600;
 
@@ -107,28 +107,17 @@ int gasCompMedium(){
 
 	//---- fitting A ----//
 	// TF1 * fAg1 = new TF1("fAg1", "gaus", 175, 230);
-	TF1 * fAg1 = new TF1("fAg1", "gaus", 100, 175);
+	TF1 * fAg1 = new TF1("fAg1", "gaus", 80, 120);
 	hAmed_qsBoth->Fit("fAg1", "+RMN0", "goff");
-
-	// TF1 * fAg2 = new TF1("fAg2", "gaus", fAg1->GetParameter(1) - scaleFitBack*fAg1->GetParameter(2), fAg1->GetParameter(1)+ scaleFitForward*fAg1->GetParameter(2));
-	TF1 * fAg2 = new TF1("fAg2", "gaus", 60, fAg1->GetParameter(1) - scaleFitForward*fAg1->GetParameter(2));
-	hAmed_qsBoth->Fit("fAg2", "+RMN0", "goff");
 
 	//---- fitting B ----//
 	// TF1 * fBg1 = new TF1("fBg1", "gaus", 250, 600);	
 	TF1 * fBg1 = new TF1("fBg1", "gaus", 150, 400);	
 	hBmed_qsRaw->Fit("fBg1", "+RMN0", "goff");
 
-	TF1 * fBg2 = new TF1("fBg2", "gaus", 80, 300);	
-	hBmed_qsBoth->Fit("fBg2", "+RMN0", "goff");
-
 	//---- fitting C ----//
 	TF1 * fCg1 = new TF1("fCg1", "gaus", 150, 250);
 	hCmed_qsBoth->Fit("fCg1", "+RMN0", "goff");
-
-	// TF1 * fCg2 = new TF1("fCg2", "gaus", fCg1->GetParameter(1) - scaleFitBack*fCg1->GetParameter(2), fCg1->GetParameter(1)+ scaleFitForward*fCg1->GetParameter(2));
-	TF1 * fCg2 = new TF1("fCg2", "gaus", 80, fCg1->GetParameter(1) - scaleFitForward*fCg1->GetParameter(2));
-	hCmed_qsBoth->Fit("fCg2", "+RMN0", "goff");
 
 	// how to improve this strategy
 	/*
@@ -138,22 +127,6 @@ int gasCompMedium(){
 	*/
 
 	//////// plotting fit  R2 data ////////
-
-	float scaleA = fAg1->GetParameter(1)/fAg2->GetParameter(1);
-
-	float scaleC = fCg1->GetParameter(1)/fCg2->GetParameter(1);
-
-	float testScaleB = fBg1->GetParameter(1)/fBg2->GetParameter(1);
-
-	float scaleB = (scaleA + scaleC)/2;
-
-	float runBlight = fBg2->GetParameter(1) * scaleB;
-	cout << "estimated light = " << runBlight << endl;
-
-	cout << "scaleA = " << scaleA << endl;
-	cout << "scaleC = " << scaleC << endl;
-	cout << "testScaleB = " << testScaleB << endl;
-
 
 	// plot linearly, x = 1/R^2
 	// plot pure, x = R
@@ -165,13 +138,12 @@ int gasCompMedium(){
 	Double_t er = 2 * 0.2; // multiply by 1/R^2
 	Double_t exr2[3] = { er/(2.5*2.5), er/(1.9*1.9), er/(1.25*1.25) }; //opposite order
 
-	//float yLightScaled[3] = {(float)fAg1->GetParameter(1), (float)fCg1->GetParameter(1), runBlight};
-	float yLightScaled[3] = {(float)fAg1->GetParameter(1), (float)fCg1->GetParameter(1), (float)fBg1->GetParameter(1)};
+	float yLight[3] = {(float)fAg1->GetParameter(1), (float)fCg1->GetParameter(1), (float)fBg1->GetParameter(1)};
 
 	///// -- building TGraphs
 
 	////// 1/x^2
-	TGraph * tgR = new TGraph(3, xr, yLightScaled);
+	TGraph * tgR = new TGraph(3, xr, yLight);
 	tgR->SetTitle("1/x^2");
 	TF1 * fLYr = new TF1("fLYr", "[0]/(x*x)", 1., 10);
 	tgR->Fit("fLYr", "+RMN0");
@@ -201,7 +173,7 @@ int gasCompMedium(){
 
 
 	////// 1/x
-	TGraph * tgR2 = new TGraph(3, xr2, yLightScaled);
+	TGraph * tgR2 = new TGraph(3, xr2, yLight);
 	tgR2->SetTitle("1/x");
 	TF1 * fLYr2 = new TF1("fLYr2", "[0]/x", 2., 10);
 	tgR2->Fit("fLYr2", "+RMNO");
@@ -214,7 +186,7 @@ int gasCompMedium(){
 	cR2->Update();
 
 	////// x
-	TGraph * tgRlin = new TGraph(3, xr2lin, yLightScaled);
+	TGraph * tgRlin = new TGraph(3, xr2lin, yLight);
 	tgRlin->SetTitle("x");
 	TF1 * fLYr2lin = new TF1("fLYr2lin", "[0] * x", 0, 0.6);
 	tgRlin->Fit("fLYr2lin", "+RMN0");
@@ -268,32 +240,20 @@ int gasCompMedium(){
 	hBmed_qsRaw->SetLineColor(3);
 	hBmed_qsRaw->Draw("hist same");
 
-	hBmed_qsBoth->SetLineStyle(9);
-	hBmed_qsBoth->SetLineWidth(3);
-	hBmed_qsBoth->SetLineColor(3);
-	hBmed_qsBoth->Draw("hist same");
+	// hBmed_qsBoth->SetLineStyle(9);
+	// hBmed_qsBoth->SetLineWidth(3);
+	// hBmed_qsBoth->SetLineColor(3);
+	// hBmed_qsBoth->Draw("hist same");
 
 	// ---- drawing fits ---- //
 	fAg1->SetLineWidth(3);
 	fAg1->Draw("same");
 
-	fAg2->SetLineColor(6);
-	fAg2->SetLineWidth(3);
-	fAg2->Draw("same");
-
 	fBg1->SetLineWidth(3);
 	fBg1->Draw("same");
 
-	fBg2->SetLineWidth(3);
-	fBg2->SetLineColor(6);
-	fBg2->Draw("same");
-
 	fCg1->SetLineWidth(3);
 	fCg1->Draw("same");
-
-	fCg2->SetLineWidth(3);
-	fCg2->SetLineColor(6);
-	fCg2->Draw("same");
 
 	/// ---- formatting ---- ///
 	leg1->AddEntry(hAmed_qsRaw, "2.5cm, raw", "l");
@@ -304,7 +264,7 @@ int gasCompMedium(){
 	// leg1->AddEntry(hBmed_qsBoth, "1.25cm, cuts", "l");
 	leg1->Draw("same");
 
-	hAmed_qsRaw->SetTitle("Gas - Mega Trigger - alpha spectra");
+	hAmed_qsRaw->SetTitle("Gas - Medium Trigger - alpha spectra");
 	hAmed_qsRaw->GetXaxis()->SetTitle("Raw Charge (V x ns)");
 	hAmed_qsRaw->GetYaxis()->SetTitle("Counts");
 

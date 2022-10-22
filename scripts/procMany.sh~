@@ -1,0 +1,9 @@
+nohup python3 ../codeProcess/procStaticVars1.py --run 20210803_9 --N 100000 --outName outProcStatic2_ &
+
+nohup python3 ../codeProcess/procStaticVars1.py --run 20210723_8 --N 100000 --outName outProcStatic2_ &
+
+nohup python3 ../codeProcess/procStaticVars1.py --run 20210812_4 --N 100000 --outName outProcStatic2_ &
+#nohup python3 ../codeProcess/procStaticVars1.py --run 20210803_7 &
+
+#nohup python3 ../codeProcess/procStaticVars1.py --run 20210812_1 &
+#nohup python3 ../codeProcess/procStaticVars1.py --run 20210812_5 &

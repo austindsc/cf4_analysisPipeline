@@ -14,6 +14,9 @@ running instructions
 		for other options explained
 """
 
+# need to add lines where all variables are calculated from
+# maybe difference betweeen data is becaus of baselines
+
 import numpy as np
 import os
 import matplotlib.pyplot as plt
@@ -30,7 +33,7 @@ import ROOT
 from ROOT import TFile, TTree
 from ROOT import TCanvas, gApplication, gStyle, TLegend, TPaveText
 from ROOT import TF1, TH1F, TGraph, TGraphErrors, TFitResult
-from ROOT import TSpectrum
+from ROOT import TSpectrum, TVectorD
 from ROOT import TMath, TFormula
 from ROOT import gROOT
 
@@ -47,7 +50,7 @@ pars = argparse.ArgumentParser()
 pars.add_argument("--first", type = int, required = False, default = 0, help = "what event to start at")
 pars.add_argument("--g", type = int, required = False, default = 0, help = "what pulse group to start in (folder)")
 pars.add_argument("--N", type = int, required = False, default = -1, help = "N events to loop through. Default -1 means process all")
-pars.add_argument("--run", type = str, required = False, default = "20210726_0", help = "randomly selected default run")
+pars.add_argument("--run", type = str, required = False, default = "x_20210726_0", help = "randomly selected default run")
 pars.add_argument("--live", type = int, required = False, default = False, help = "view each pulse, with user pressing Enter")
 pars.add_argument("--view", type = int, required = False, default = False, help = "view final plots")
 pars.add_argument("--outName", type = str, required = False, help = "if custom naming of output file is desired, input name here (without .root suffix)")
@@ -75,6 +78,10 @@ print("writing ROOT file to: ", outName, "\n")
 ### defining TTree and all variables ###
 tt = TTree("tt", "proc static variables, run:" + str(run))
 
+blinePre = 400
+# 500 for mega trigger
+# 40 for medium gas trigger
+
 height1 = np.empty((1), dtype = "float32")
 tt.Branch("hbline_min", height1, "hbline_min/F")
 
@@ -96,6 +103,12 @@ tt.Branch("qr800", qr3, "qr800/F")
 qs1 = np.empty((1), dtype = "float32")
 tt.Branch("qs50", qs1, "qs50/F")
 
+tstart = np.empty((1), dtype = "float32")
+tt.Branch("tStart", tstart, "tsStart/F")
+
+tend = np.empty((1), dtype = "float32")
+tt.Branch("tsEnd", tend, "tsEnd/F")
+
 # f1q = np.empty((1), dtype = "float32")
 # tt.Branch("f1q", f1q, "f1q/F")
 
@@ -109,29 +122,33 @@ tt.Branch("qs50", qs1, "qs50/F")
 # tt.Branch("f1chi2", f1chi2, "f1chi2/F")
 
 
-######### BUILDING HISTS #########
-qMax = 10
+######### BUILDING charge HISTS #########
+qMax = 20
 hq_fAll = TH1F("hq_fAll", "hq_fAll", 200, -1, qMax)
 hq_fChi2 = TH1F("hq_fChi2", "hq_fChi2", 200, -1, qMax)
 
 hq_range1 = TH1F("hq_range1", "hq_range1", 200, -1, qMax)
+hq_range2 = TH1F("hq_range2", "hq_range2", 200, -1, qMax)
+hq_range3 = TH1F("hq_range3", "hq_range3", 200, -1, qMax)
 hq_smart1 = TH1F("hq_smart1", "hq_smart1", 200, -1, qMax)
+
+hTest = TH1F("hTest", "hTest", 200, -1, qMax)
 
 hh_static = TH1F("hh_static", "hh_static", 200, 0, 0.1)
 hh_fits = TH1F("hh_fits", "hh_fits", 200, 0, 0.1)
 
-### setup plotting ###
-# fig, axes = plt.subplots(1, 1, figsize = (8, 6))
-# ax0 = axes
-
 fitOpt = "WQN0"
 specOpt = "goff"
-if live == True:
-	c1 = TCanvas('c1', 'c1', 600, 600)
+if live == True: #setup plotting
+	### setup plotting ###
+	fig, axes = plt.subplots(1, 1, figsize = (8, 6))
+	ax0 = axes
 	plt.ion()
+
+	# c1 = TCanvas('c1', 'c1', 600, 600)
 	fitOpt = "WN0"
-	specOpt = ""
-	# plt.show()
+	specOpt = "goff"
+
 
 ##### pulse group loop #####
 totalN = 0
@@ -171,33 +188,31 @@ while os.path.exists(path) == True:
 		# gap = data.get('dt')[ind, iSipm] * 10**9
 		time = np.array(range(len(s1v))) * gap #+ data.get("t0")[ind, iSipm]
 
-		# ax0.plot(time, s1v, alpha = 0.4)
-		# ax0.plot(time, d1)
-		# plt.plot(sipm[:-100])
-		# plt.plot(trigger[:-100]*0.1)	
-
 		######## doing processing ########
 		minTime = np.argmin(s1v)
-		blines = getBaselineAvg(data = s1v, start = 0, end = 250)
-		spread = blines.get('v') - min(s1v) # may want to cut on this variable later (at spread < around 0.007)
+		blines = getBaselineAvg(data = s1v, start = 0, end = blinePre)
+		earlySpread = blines.get('v') - min(s1v[0:40]) # may want to cut on this variable later (at spread < around 0.007)
 
-		if minTime < 300: # pulse is too early
-			blines = getBaselineAvg(data = s1v, start = minTime+600, end = minTime+900)
-			if live == True:
-				print("using end as baseline")
+		if(earlySpread > 0.01):
+			continue
+
+		# if minTime < 300: # pulse is too early
+		# 	blines = getBaselineAvg(data = s1v, start = minTime+600, end = minTime+900)
+		# 	if live == True:
+		# 		print("using end as baseline")
 
 		qRange, rEarly, rLate = minFixRangeIntegrate(data = s1v, bline = blines.get('v'), early = 150, late = 300)
 		qRange2, rEarly2, rLate2 = minFixRangeIntegrate(data = s1v, bline = blines.get('v'), early = 100, late = 200)
 		qRange3, rEarly3, rLate3 = minFixRangeIntegrate(data = s1v, bline = blines.get('v'), early = 200, late = 900)
-		qSmart1, fEarly, fLate = toFlatRangeIntegrate(data  = s1v, bline = blines.get('v'), blineRMS = blines.get('e'), extra = 50)
+		qSmart1, fEarly, fLate = toFlatRangeIntegrate(data  = s1v, bline = blines.get('v'), blineRMS = blines.get('e'), extra = 10)
 
 		# building TH1 (and flipping)
 		hwf = TH1F("hwf", "hwf", len(s1v), time[0], time[-1])
 		for i in range(len(s1v)):
 			hwf.SetBinContent(i+1, -s1v[i])
 
-		if live == True:
-			hwf.Draw("hist") # root drawing first so spectrum peaks show up
+		# if live == True:
+		# 	hwf.Draw("hist") # root drawing first so spectrum peaks show up
 
 		# peak finding (currently unused)
 		spec = TSpectrum(1)
@@ -207,8 +222,8 @@ while os.path.exists(path) == True:
 		spec.Search(hwf, 10., specOpt + "noMarkov", 0.5)
 
 		###### fitting functions ######
-		# flat1 = TF1("flat1", "pol0", 0, 250)
-		# flat1.SetParameters(-blines.get('v'))
+		flat1 = TF1("flat1", "pol0", 0, 250)
+		flat1.SetParameters(-blines.get('v'))
 
 		theight1 = blines.get('v') - min(s1v)
 		height2 = spec.GetPositionY()[0] + blines.get('v')
@@ -242,6 +257,8 @@ while os.path.exists(path) == True:
 		qr2[0] = qRange2
 		qr3[0] = qRange3
 		qs1[0] = qSmart1
+		tend[0] = fLate
+		tstart[0] = fEarly
 		
 		"""
 		f1q[0] = pulse1.GetParameter(0)
@@ -262,6 +279,8 @@ while os.path.exists(path) == True:
 
 		## filling simple histograms
 		hq_range1.Fill(qRange)
+		hq_range2.Fill(qRange2)
+		hq_range3.Fill(qRange3)
 		hq_smart1.Fill(qSmart1)
 
 		if live == True:
@@ -270,8 +289,8 @@ while os.path.exists(path) == True:
 			# pulse1.Draw("same")
 			# flat1.Draw("hist same")
 
-			c1.Modified()
-			c1.Update()
+			# c1.Modified()
+			# c1.Update()
 
 			#hold for user input
 			print("\n event #", ind)
@@ -281,18 +300,29 @@ while os.path.exists(path) == True:
 			print("qRange = ", qRange)
 			print("qSmart = ", qSmart1)
 			# print("Qfit = ", qFit, "    ch2 = ", chi2Fit, "   NDF = ", pulse1.GetNDF())
+			# del pulse1
+
+			ax0.clear() # somehow reset but keep last N pulses
+			plt.pause(0.1)
+			ax0.hlines(blines.get('v'), time[0], time[-1])
+			ax0.plot(time, s1v, '.', alpha = 0.5)
+			print(s1v[-10:-1])
 			input()
 
-			# del pulse1
-			# plt.show()
-			# ax0.clear() # somehow reset but keep last N pulses
+
 
 		del hwf
 
 hFile.cd()
 tt.Write()
 
-hFile.Close()
+num = TVectorD(1)
+num[0] = blinePre
+num.Write("blinePre")
+# to access do:
+# TVectorD * a = (TVectorD*) _file0->Get("blinePre")
+# (*a)[0]
+
 
 if live == False and view == True:
 	c1 = TCanvas('c1', 'c1', 600, 400)
@@ -300,25 +330,31 @@ if live == False and view == True:
 	hq_smart1.SetLineColor(1) # black
 	hq_smart1.Draw("hist")
 
-	hq_range1.SetLineColor(3) # green
+	hq_range1.SetLineColor(2) # red
 	hq_range1.Draw("hist same")
 
-	hq_fAll.SetLineColor(4) # blue
-	hq_fAll.Draw("hist same")
+	hq_range2.SetLineColor(3) # green
+	hq_range2.Draw("hist same")
 
-	hq_fChi2.SetLineColor(6) # pink
-	hq_fChi2.Draw("hist same")
+	hq_range3.SetLineColor(4) # blue
+	hq_range3.Draw("hist same")
+
+	# hq_fAll.SetLineColor(4) # blue
+	# hq_fAll.Draw("hist same")
+
+	# hq_fChi2.SetLineColor(6) # pink
+	# hq_fChi2.Draw("hist same")
 
 	c1.Update()
 
-	c2 = TCanvas("c2", "c2", 600, 400)
+	# c2 = TCanvas("c2", "c2", 600, 400)
 
-	hh_static.Draw("hist")
-	hh_fits.SetLineColor(3)
-	hh_fits.Draw("hist same")
-	c2.Update()
+	# hh_static.Draw("hist")
+	# hh_fits.SetLineColor(3)
+	# hh_fits.Draw("hist same")
+	# c2.Update()
 
 	ROOT.gApplication.Run()
 
-
+hFile.Close()
 

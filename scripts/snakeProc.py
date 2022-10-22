@@ -6,9 +6,9 @@ from multiprocessing import Pool
 def run_process(command):
 	subprocess.run(command, shell = True)
 
-cA = "python3 $CF4HOME/codeProcess/procStaticVars1.py --N 50000 --outName liqMedoutProcStatic2_ "
+cA = "python3 ../codeProcess/procStaticVars1.py --N 50000 --outName 50koutProcStatic2_ "
 
-runList = ["20210726_7", "20210804_4", "20210813_4"]
+runList = ["20210723_5", "20210812_2"]
 
 processes = []
 iProcs = 3

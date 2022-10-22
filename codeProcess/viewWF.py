@@ -29,6 +29,8 @@ pars.add_argument("--run", type = str, required = False, default = "20210726_0")
 pars.add_argument("--live", type = int, required = False, default = False, help = "do viewing with user input")
 
 args=pars.parse_args()
+
+
 run = args.run # LED data in CF4 gas?
 live = bool(args.live)
 
@@ -76,7 +78,7 @@ for ind in range(args.first, args.first + min(len(traces), args.N)):
 
 	ax0.plot(time, s1v, alpha = 0.4)
 	# ax0.plot(time, d1)
-	# plt.plot(sipm[:-100])
+	# plt.plot(sipm)
 	# plt.plot(trigger[:-100]*0.1)
 
 	######## do processing ########
@@ -93,15 +95,18 @@ for ind in range(args.first, args.first + min(len(traces), args.N)):
 		 
 
 	if live == True:
+		ax0.clear() # somehow reset but keep last N pulses
+		ax0.plot(time, s1v, alpha = 0.4)
 		#hold for user input
 		print("\n event #", ind)
 		print("minTime = ", minTime)
 		print("blines = ", blines)
 		print("qRange = ", qRange)
 		print("qSmart = ", qSmart1)
-		input()
 		plt.pause(0.1)
-		ax0.clear() # somehow reset but keep last N pulses
+		plt.show()
+		input()
+	
 
 ax0.minorticks_on()
 ax0.grid(True)
