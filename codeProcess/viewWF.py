@@ -11,10 +11,12 @@ import argparse
 from array import array
 
 import sys
+
 sys.path.append('..')
 from SBCcode.DataHandling import ReadBinary as rb
 
 from ozTools import *
+from ozRCcorrection import *
 
 print("Austin's new waveform viewer")
 
@@ -107,8 +109,8 @@ if __name__ == "__main__":
 
 		if not args.live:
 			ax0.plot(x0, tr0, alpha = 0.4, label = "ch 0")
-			ax0.plot(x1, tr1, alpha = 0.4, label = "ch 1")
-			ax0.plot(x2, tr2, alpha = 0.4, label = "ch 2")
+			# ax0.plot(x1, tr1, alpha = 0.4, label = "ch 1")
+			# ax0.plot(x2, tr2, alpha = 0.4, label = "ch 2")
 
 		######## do processing ########
 		# minTime = np.argmin(s1v)
@@ -122,12 +124,21 @@ if __name__ == "__main__":
 		# qRange, rEarly, rLate = minFixRangeIntegrate(data = s1v, bline = blines.get('v'), early = 250, late = 450)
 		# qSmart1, fEarly, fLate = toFlatRangeIntegrate(data  = s1v, bline = blines.get('v'), blineRMS = blines.get('e'), extra = 0)
 		# 
+		bline = getBaselineAvg(data = x0, start = 0, end = )
 
 		if args.live == True:
 			ax0.clear() # somehow reset but keep last N pulses
 			ax0.plot(x0, tr0, alpha = 0.4, label = "ch 0")
-			ax0.plot(x1, tr1, alpha = 0.4, label = "ch 1")
-			ax0.plot(x2, tr2, alpha = 0.4, label = "ch 2")
+   
+			rcWfm1 = 0 + BaselineRestoration(tr0, 300, 0, 16)
+			ax0.plot(x0, rcWfm1, alpha = 0.4, label = "RC = 300")
+
+			rcWfm = 0 + BaselineRestoration(tr0, 3000, 0, 16)
+			ax0.plot(x0, rcWfm, alpha = 0.4, label = "RC = 3000")
+
+			# ax0.plot(x1, tr1, alpha = 0.4, label = "ch 1")
+			# ax0.plot(x2, tr2, alpha = 0.4, label = "ch 2")
+   
 			#hold for user input
 			# print("\n event #", ind)
 			# print("minTime = ", minTime)

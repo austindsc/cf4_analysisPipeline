@@ -16,7 +16,6 @@ void BaselineRestoration(TH1D* hCorr, Double_t tau = 3300,Double_t t0=0.0)
     vShift.push_back(shift);
     hCorr->SetBinContent(iB,correction);
     n++;
-
   }
   vShift.clear();
 

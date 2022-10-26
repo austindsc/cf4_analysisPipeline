@@ -118,7 +118,7 @@ if __name__ == "__main__":
 	try:
 		os.path.exists(path+"zz")
 	except:
-		print(failed)
+		print("failed")
 	exit()
 	if not args.caen: #old
 		path = os.path.join(raw_directory, run, str(args.g), "PMTtraces.bin")
