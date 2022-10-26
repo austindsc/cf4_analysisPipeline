@@ -22,6 +22,7 @@ def getBaselineHist(data, vScale):
 	low = min(data)
 
 	hbline = TH1F( 'hbline', 'baseline histogram', int((high-low)/vScale), low, high)
+
 	for i in data:
 		hbline.Fill(i)
 
@@ -84,6 +85,9 @@ def findFlat(data, bline, blineRMS, iMin: int, forward: bool = True): # true mea
 # and don't go extra distance on tail end (avoid overshoot on large pulses)
 def toFlatRangeIntegrate(data, bline, blineRMS, extra):
 
+	#	! hello
+	# TODO yoo
+	
 	iMin = np.argmin(data)
 	forwardGap = findFlat(data = data, bline = bline, blineRMS = blineRMS, iMin = iMin, forward = True)
 	reverseGap = findFlat(data = data, bline = bline, blineRMS = blineRMS, iMin = iMin, forward = False)

@@ -1,0 +1,484 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1671\cocoasubrtf600
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww10800\viewh8400\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 /* to run from anywhere:\
+execute\
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:(path where .so files are)\
+*/\
+\
+R__LOAD_LIBRARY(libSipmAnalysis.so)\
+\
+\
+#include <iostream>\
+#include <fstream>\
+#include <memory>\
+#include <string>\
+\
+#include <TTreeReader.h>\
+#include <TTreeReaderValue.h>\
+#include <TTreeReaderArray.h>\
+\
+// makeclass objects\
+// #include "/home/adsx/vwatUse1/macros1/DataOutTree.C"\
+\
+/*\
+sanity check of different type of fits (peak vs leading edge)\
+\
+1. per event, per channel, plot peakTime-frontTime vs peak charge\
+\
+\
+*/\
+const int NCHAN = 30;\
+const float TRIGTIME = 700.;\
+const float BADTIME = 10000.;\
+const float POVERLAPT = 32;\
+\
+Double_t getSPEval(int chan, TTree * tt, bool verbose = false)\{\
+  // TCanvas * c = new TCanvas();\
+  // TH1F * histQ = new TH1F("histQ", "histQ", 200, 0, 300000/2000);\
+  // tt->Draw("ch27.pulse.charge/2400 >> histQ", "ch27.pulse.charge > 100", "hist");\
+  // c->Update();\
+  TH1F * histQ = new TH1F("histQ", "histQ", 120, 0, 10000);\
+  tt->Draw(("ch" + to_string(chan) + ".pulse.charge >> histQ").c_str(), ("ch" + to_string(chan) + ".pulse.charge > 100").c_str(), "goff");\
+  float gausWidth = 600.;\
+  TSpectrum * s = new TSpectrum(10);\
+  s->Search(histQ, 2., "goff", 0.05);\
+  Double_t * xPeaks = s->GetPositionX();\
+  TF1 * fgaus = new TF1("fgaus", "gaus", xPeaks[0] - gausWidth, xPeaks[0] + gausWidth);\
+  fgaus->SetParameters(histQ->GetMaximum(), xPeaks[0], gausWidth/4);\
+  histQ->Fit("fgaus", "QRN0");\
+  Double_t q1PE = fgaus->GetParameter(1);\
+  \
+  TF1 * fgaus2 = new TF1("fgaus2", "gaus", xPeaks[1] - gausWidth, xPeaks[1] + gausWidth);\
+  fgaus2->SetParameters(histQ->GetMaximum(), xPeaks[1]*0.9, gausWidth/4);\
+  histQ->Fit("fgaus2", "QRN0");\
+  Double_t q2PE = fgaus2->GetParameter(1);\
+  Double_t spe = q2PE - q1PE;\
+  Double_t fullSig = TMath::Sqrt(fgaus->GetParameter(2)*fgaus->GetParameter(2) + fgaus2->GetParameter(2)*fgaus2->GetParameter(2));\
+\
+  printf("ch = %i  chi2 = %0.1f %0.1f   QSPE = %0.2f    res = %0.2f\\n", chan, fgaus->GetChisquare()/fgaus->GetNDF(), fgaus2->GetChisquare()/fgaus2->GetNDF(), spe, spe/fullSig);\
+  if(verbose == true)\{\
+    gStyle->SetOptFit(1);\
+    histQ->Draw("hist");\
+    fgaus->Draw("same");\
+    fgaus2->Draw("same");\
+  \} else \{\
+    delete fgaus;\
+    delete histQ;\
+  \}\
+  return spe;\
+\}\
+\
+std::pair<float, int> getFirstPhoton(std::vector<std::vector<float>> * times, float trigTime)\{\
+  vector<float> firstPhotons = \{\};\
+  vector<int> firstPhotonsch = \{\};\
+  for(int ich = 0; ich < NCHAN; ich++)\{ //channel loop\
+    if(times->at(ich).size() == 0) continue; //skip empty channels\
+    float cht0 = times->at(ich).at(0); //first photon\
+    if(cht0 > trigTime)\{\
+      firstPhotons.push_back(cht0); // physics trigger cut (no pre-pulses)\
+      firstPhotonsch.push_back(ich);\
+    \}\
+  \}//end channel loop\
+  if(firstPhotons.size() < 1)\{ //faulty event\
+    return pair<float, int> (BADTIME, -1);\
+  \}\
+  float t0 = *min_element(firstPhotons.begin(), firstPhotons.end());\
+  int ch0 = firstPhotonsch[min_element(firstPhotons.begin(), firstPhotons.end()) - firstPhotons.begin()];\
+  return pair<float, int> (t0, ch0);\
+\}\
+\
+//////////// analysis ////////////\
+void timingWaveforms()\{\
+  \
+  gInterpreter->GenerateDictionary("vector<vector<float> >", "vector");\
+  gSystem->Load("/home/adsx/vwat/lib/libSipmAnalysis.so");\
+  // gSystem->Load("/home/adsx/vwatUse1/macros1/DataOutTree.C");\
+  \
+  // TChain * tt = new TChain("DataOutTree");\
+  // tt->Add("/phaar/data1/users/adsx/vwatProc/proc2/run01670_01_tspectLineFit_all.TTree.root");\
+  \
+  /*\
+  // good files! (with correct beta spectrum) \
+  proc2/run01670_01_testSettings1_All.TTree.root\
+  \
+  \
+  */\
+  \
+  \
+  TChain * tt = new TChain("DataOutTree");\
+  // tt->Add("/phaar/data1/users/adsx/vwatProc/proc3/run01670_01_noise5_pfsNoiseFactor1_extra2.TTree.root");\
+  tt->Add("/phaar/data1/users/adsx/vwatProc/proc3/run01670_01_noise5_pfsNoiseFactor1_extra1_blineAvgFixed.TTree.root");\
+  // TFile * f1 = new TFile("/phaar/data1/users/adsx/vwatProc/proc2/run01670_01_testSettings1_All.TTree.root");\
+  \
+  // SPE distributions\
+  TH1F * hSPE = new TH1F("hSPE", "channel SPE", 50, 1000, 3000);\
+  Double_t aChanSPE[NCHAN] = \{0.\};\
+  for(int ich = 0; ich < NCHAN; ich++)\{\
+    Double_t chSPE = getSPEval(ich, tt);\
+    hSPE->Fill(chSPE);\
+    aChanSPE[ich] = chSPE;\
+  \}\
+  // hSPE->Draw("hist");\
+  // return;\
+  // getSPEval(22, tt, true);\
+  // return;\
+\
+  //////// setting variables ////////\
+  //tt->Show(0);\
+  std::vector<std::vector<float>> * pFrontTimes = 0;\
+  std::vector<std::vector<float>> * pFrontChi2 = 0;\
+  std::vector<std::vector<float>> * pPeakTimes = 0;\
+  std::vector<std::vector<float>> * pPeakChi2 = 0;\
+  \
+  std::vector<std::vector<float>> * pRawQ = 0;\
+  std::vector<std::vector<float>> * pRawH = 0;\
+  vector<vector<float>> * pRawFrontTime = 0;\
+  vector<vector<float>> * pRawWidth = 0;\
+  \
+  tt->SetBranchAddress("pFitFrontTimes", &pFrontTimes);\
+  tt->SetBranchAddress("pFitFrontChi2", &pFrontChi2);\
+  tt->SetBranchAddress("pFitPeakTimes", &pPeakTimes);\
+  tt->SetBranchAddress("pFitPeakChi2", &pPeakChi2);\
+  \
+  tt->SetBranchAddress("pRawQ", &pRawQ);\
+  tt->SetBranchAddress("pRawHeight", &pRawH);\
+  \
+  tt->SetBranchAddress("pFrontTime", &pRawFrontTime);\
+  tt->SetBranchAddress("pRawWidth", &pRawWidth);\
+  \
+  //////// histograms ////////\
+  \
+  // beta spectra\
+  TH1 * hBetaBare = new TH1F("hBetaBare", "bare beta spectrum", 200, 0, 400);\
+  TH1 * hBetaAll = new TH1F("hBetaAll", "non-Bare beta spectrum", 200, 0, 400);\
+  TH1 * hBetaOther = new TH1F("hBetaOther", "non-Bare beta spectrum", 200, 0, 400);\
+  TH2 * h2allPEvsNhit = new TH2F("h2allPEvsNhit", "Nhit vs all PE", 200, 0, 400, 30, 1, 31);\
+  TH2 * h2barePEvsNhit = new TH2F("h2barePEvsNhit", "Nhit vs bare PE", 200, 0, 400, 30, 1, 31);\
+  \
+  // TH2 * \
+  //barePE vs otherPE\
+  \
+  // other sanity checks\
+  TH1 * hFirstPeakPhotons = new TH1F("hFirstPeakPhotons", "all ch first peak photons", 500, 0, 3000); // for trigger window\
+  // have to make this plot to check where to put overlayed pulse cut!\
+  TH1 * hPulseFrontGaps = new TH1F("hPulseFrontGaps", "thistime - lasttime", 100, 0, 500);\
+  \
+  // first channel hit\
+  TH1 * hchanHitFirst = new TH1I("hchanHitFirst", "first hit channel", 30, -0.5, 29.5);\
+  TH2 * h2chanFirstVsBarePE = new TH2F("h2chanFirstVsBarePE", "channel hit vs bare PE", 30, -0.5, 29.5, 100, 0, 200);\
+  \
+  //////// waveforms ////////\
+  TH1 * hwfAllPeakPhotons = new TH1F("hwfAllPeakPhotons", "WF: first peak photons", 100, 0, 200);\
+  TH1 * hwfAllFrontPhotons = new TH1F("hwfAllFrontPhotons", "WF: first front photons", 100, 0, 100);\
+  TH2 * h2wfFirstPeaksvsChannel = new TH2F("h2wfFirstPeaksvsChannel", "per channel, time after first photon", 30, -0.5, 29.5, 100, 0, 200);\
+  \
+  // t0 from any channel, all pulses, flag energy with barePE\
+  TH1 * hwfAllPeakLowestE = new TH1F("hwfAllPeakLowestE", "WF: first peak photons, lowest energy", 100, 0, 100);\
+  TH1 * hwfAllPeakLowE = new TH1F("hwfAllPeakLowE", "WF: first peak photons, low energy", 100, 0, 100);\
+  TH1 * hwfAllPeakMidE = new TH1F("hwfAllPeakMidE", "WF: first peak photons, mid energy", 100, 0, 100);\
+  TH1 * hwfAllPeakMidHighE = new TH1F("hwfAllPeakMidHighE", "WF: first peak photons, mid high energy", 100, 0, 100);\
+  TH1 * hwfAllPeakHighE = new TH1F("hwfAllPeakHighE", "WF: first peak photons, high energy", 100, 0, 100);\
+\
+  // t0 from hot channels\
+  TH1 * hwfHott0_lowE = new TH1F("hwfHott0_lowE", "WF: first photon in specific channel", 100, 0, 100);\
+  TH1 * hwfHott0_highE = new TH1F("hwfHott0_highE", "WF: first photon in hot channel", 100, 0, 100);\
+\
+  // t0 from no scint channels\
+  TH1 * hwfnoScintt0_highE = new TH1F("hwfnoScintt0_highE", "WF: first photon in cold channel", 100, 0, 100);\
+  \
+  // pick t0 from bare channels (have negative timing)\
+  // TH1 * hwfHotPeak = new TH1F("hwfHotPeak", "WF: first peak photons", 100, 0, 200);\
+  // TH1 * hwfLpPeak = new TH1F("hwfLpPeak", "WF: first peak photons", 100, 0, 200);\
+  \
+  // looking at difference in fitting\
+  // TH1 * hFitGap_ch0 = new TH1F("hFitGap_ch0", "ch0: timeFront - timePeak", 100, 0, 100);\
+  // TH2 * h2FitGapX2_ch0 = new TH2F("hFitGapX2_ch0", "ch0: fitTimes vs chi2", 100, 0, 100, 100, 0, 100);\
+  \
+  // fitting biases\
+  TH2 * h2TimeVsCharge_all = new TH2F("h2TimeVsCharge_all", "all ch: pulse PE vs peakTime", 100, 0, 100, 100, 0, 200);\
+\
+  // channel mapping\
+  TH2 * h2chVsPEratio = new TH2F("h2chVsPEratio", "channel PE/Bare PE vs chID", 30, -0.5, 29.5, 50, 0, 2);\
+  // look at fgap distribution and channels\
+  \
+  // if(tt->GetEntries() < 70000) return;\
+  /////// event loop ///////\
+  for(int iev = 0; iev < tt->GetEntries(); iev++)\{ //event loop\
+    tt->GetEntry(iev);\
+    if(iev % 1000 == 0) cout << "\\rat event: " << iev/1000 << "k / " << (int)tt->GetEntries()/1000 <<"k" << flush;\
+    \
+    //// event level variables ////\
+    float barePE = 0.;\
+    float otherPE = 0.;\
+    float allPE = 0.;\
+    float chanPEs[NCHAN] = \{0.\};\
+    int nhit = 0.;\
+    float firstFrontTime[NCHAN];\
+    float firstPeakTime[NCHAN];\
+    for(int i = 0; i < NCHAN; i++)\{\
+      firstFrontTime[i] = BADTIME;\
+      firstPeakTime[i] = BADTIME;\
+    \}\
+    \
+    vector<pair<float, float>> vFirstPulseqt;\
+    \
+    for(int ich = 0; ich < 30; ich++)\{ //channel loop\
+      \
+      //// channel level variables ////\
+      float chanPE = 0;\
+      float chanQ = 0;\
+      float lastTime = 0;\
+      \
+      for(int ip = 0; ip < pRawQ->at(ich).size(); ip++)\{ //pulse loop\
+        float thisTime = pRawFrontTime->at(ich).at(ip);\
+        \
+        float pulseQ = pRawQ->at(ich).at(ip);\
+        float pulsePE = pulseQ/(float) aChanSPE[ich];\
+        float pulseH = pRawH->at(ich).at(ip);\
+        \
+        float pulseFt = pFrontTimes->at(ich).at(ip);\
+        float pulsePt = pPeakTimes->at(ich).at(ip);\
+        \
+        if(pulsePE < 0.5 || pulsePt == 0)\{ lastTime = thisTime; continue; \}\
+        //if(pulsePE < 0.5)\{ lastTime = thisTime; continue; \}\
+        if(ip > 0)hPulseFrontGaps->Fill(thisTime - lastTime); // for sanity checks\
+        \
+        if(ip > 0 && thisTime - lastTime <= POVERLAPT) \{// must make sure this pulse's integral is after the previous one (avoid double counting)\
+          lastTime = thisTime;\
+          continue;\
+        \} // !!!else do physics below!!!\
+        \
+        chanQ += pulseQ;\
+        chanPE += pulsePE;\
+        \
+        if(ip == 0 && pulsePt > TRIGTIME)\{ // first photons\
+          firstFrontTime[ich] = pulseFt;\
+          firstPeakTime[ich] = pulsePt;\
+          hFirstPeakPhotons->Fill(pulsePt);\
+          vFirstPulseqt.push_back(pair<float, float>(pulsePE, pulsePt)); // track first pulses and their charge\
+        \}\
+        \
+        if(ich == 0 || ich == 27 || ich == 28 || ich == 29)\{ //bare sipm\
+          barePE += pulsePE;\
+        \}else \{otherPE += pulsePE; \}\
+        allPE += pulsePE;\
+        \
+      \}//end pulse loop\
+      if(chanPE > 0.5) nhit++;\
+      \
+      chanPEs[ich] = chanPE;\
+      \
+      // fill channel histograms\
+      // if(ich == 27) hEvq27->Fill(chanQ);\
+      \
+    \}//end channel loop\
+    \
+    //////// fill event level histograms ////////\
+    if(barePE == 0) continue;\
+    hBetaBare->Fill(barePE);\
+    hBetaOther->Fill(otherPE);\
+    hBetaAll->Fill(allPE);\
+    \
+    h2allPEvsNhit->Fill(allPE, nhit);\
+    \
+    TH1* hwfWhatEnergy = hwfAllPeakLowestE;\
+    if(8 < barePE && barePE <= 20) hwfWhatEnergy = hwfAllPeakLowE;\
+    else if(20 < barePE && barePE <= 60) hwfWhatEnergy = hwfAllPeakMidE;\
+    else if(60 < barePE && barePE <= 100) hwfWhatEnergy = hwfAllPeakMidHighE;\
+    else if(100 < barePE) hwfWhatEnergy = hwfAllPeakHighE;\
+    \
+    // getting first photon channel\
+    float minTime = BADTIME;\
+    int minChan;\
+    for(int j = 0; j < NCHAN; j++)\{ // channel loop\
+      if(firstPeakTime[j] <= minTime)\{\
+        minTime = firstPeakTime[j];\
+        minChan = j;\
+      \}\
+\
+      if(barePE > 100) h2chVsPEratio->Fill(j, chanPEs[j]/barePE);\
+    \}\
+    hchanHitFirst->Fill(minChan);\
+    h2chanFirstVsBarePE->Fill(minChan, barePE);\
+    \
+    for(int j = 0; j < NCHAN; j++)\{\
+      //h2wfFirstPeaksvsChannel->Fill(j, firstPeakTime[j]);\
+    \}\
+    \
+    // timing sorting\
+    sort(firstFrontTime, firstFrontTime + NCHAN);\
+    sort(firstPeakTime, firstPeakTime + NCHAN);\
+    \
+    float fpt = firstPeakTime[0]; // first peak photon\
+    float fft = firstFrontTime[0];\
+    \
+    for(int i = 1; i < NCHAN; i++)\{ // making waveforms with any t0\
+      if(firstPeakTime[i] == BADTIME) continue; // no pulse here\
+      \
+      hwfAllPeakPhotons->Fill(firstPeakTime[i] - fpt);\
+      hwfAllFrontPhotons->Fill(firstFrontTime[i] - fft);\
+      hwfWhatEnergy->Fill(firstPeakTime[i] - fpt);\
+      \
+      // hot channels\
+      if(150 < barePE && (minChan == 7 || minChan == 21 || minChan == 22 || minChan == 23))\{\
+        hwfHott0_highE->Fill(firstPeakTime[i] - fpt);\
+      \} else if(8 < barePE && barePE < 20 && (minChan == 7 || minChan == 21 || minChan == 22 || minChan == 23))\{\
+        hwfHott0_lowE->Fill(firstPeakTime[i] - fpt);\
+      \}\
+      \
+      // cold (non scintillation) channels\
+      if((3 < minChan && minChan < 26) && 60 < barePE && !(minChan == 7 || minChan == 21 || minChan == 22 || minChan == 23))\{\
+        hwfnoScintt0_highE->Fill(firstPeakTime[i] - fpt);\
+      \}\
+    \}\
+    \
+    //redo loop on pulses (now that we have first time)\
+    for(int j = 0; j < vFirstPulseqt.size(); j++)\{\
+      h2TimeVsCharge_all->Fill(vFirstPulseqt[j].first, vFirstPulseqt[j].second - fpt);\
+    \}\
+    \
+  \} // end event loop\
+  cout << endl;\
+  \
+  //////// fitting and math ////////\
+  TF1 * fwfPeak1 = new TF1("fwfPeak1", "[0] * TMath::Exp(-(x - [2])/[1])", 20, 70);\
+  int wfPeakBin = hwfAllPeakPhotons->GetXaxis()->FindBin(25);\
+  fwfPeak1->SetParameters(hwfAllPeakPhotons->GetBinContent(wfPeakBin), 40, 25);\
+  hwfAllPeakPhotons->Fit("fwfPeak1", "RM0");\
+  \
+  hwfAllPeakLowE->Scale(1/hwfAllPeakLowE->GetMaximum());\
+  hwfAllPeakMidE->Scale(1/hwfAllPeakMidE->GetMaximum());\
+  hwfAllPeakMidHighE->Scale(1/hwfAllPeakMidHighE->GetMaximum());\
+  hwfAllPeakHighE->Scale(1/hwfAllPeakHighE->GetMaximum());\
+  \
+  hwfHott0_lowE->Scale(1/hwfHott0_lowE->GetMaximum());\
+  hwfHott0_highE->Scale(1/hwfHott0_highE->GetMaximum());\
+  hwfnoScintt0_highE->Scale(1/hwfnoScintt0_highE->GetMaximum());\
+  \
+  // TFile * fout = new TFile("betaOutput_run1670_01_pfs2.root", "RECREATE");\
+  // fout->cd();\
+  // hBetaBare->Write();\
+  // fout->Close();\
+  // return;\
+  \
+  //////// Drawing Waveforms ////////\
+  \
+  TCanvas * c1 = new TCanvas();\
+  hBetaOther->Draw("hist");\
+  hBetaBare->Draw("hist same");  \
+  // hBetaAll->Draw("hist same");\
+  c1->Update();\
+\
+/*\
+  TCanvas * c1a = new TCanvas();\
+  hPulseFrontGaps->Draw("hist");\
+  c1a->Update();\
+  \
+  TCanvas * c1b = new TCanvas();\
+  hSPE->Draw("hist");\
+  c1b->Update();\
+\
+  TCanvas * c2 = new TCanvas();\
+  hFirstPeakPhotons->Draw("hist");\
+  hFirstPeakPhotons->GetXaxis()->SetTitle("Time(ns)");\
+  c2->SetLogy();\
+  c2->Update();\
+*/\
+  \
+  // TCanvas * c3 = new TCanvas();\
+  // gStyle->SetOptFit(1);\
+  // hwfAllPeakPhotons->Draw("hist");\
+  // hwfAllPeakPhotons->GetXaxis()->SetTitle("Time(ns)");\
+  // fwfPeak1->Draw("same");\
+  // hwfAllFrontPhotons->SetLineColor(2);\
+  // hwfAllFrontPhotons->Draw("hist same");\
+  // \
+  // c3->SetLogy();\
+  // c3->Update();\
+  \
+  // TCanvas * c4 = new TCanvas();\
+  // gStyle->SetOptFit(1);\
+  // h2TimeVsCharge_all->Draw("colz");\
+  // h2TimeVsCharge_all->GetXaxis()->SetTitle("pulse PE");\
+  // h2TimeVsCharge_all->GetYaxis()->SetTitle("peak time after t0 (ns)");\
+  // c4->SetLogz();\
+  // c4->Update();\
+  \
+  TCanvas * c5 = new TCanvas();\
+  gStyle->SetOptStat(0);\
+  hchanHitFirst->Draw("hist");\
+  c5->SetLogy();\
+  c5->Update();\
+  \
+  TCanvas * c6 = new TCanvas();\
+  gStyle->SetOptStat(0);\
+  h2chanFirstVsBarePE->Draw("COLZ");\
+  h2chanFirstVsBarePE->GetXaxis()->SetTitle("channel ID");\
+  h2chanFirstVsBarePE->GetYaxis()->SetTitle("bare PE");\
+  c6->SetLogz();\
+  c6->Update();\
+  \
+  TCanvas * c7 = new TCanvas();\
+  TLegend * l7 = new TLegend();\
+  gStyle->SetOptStat(0);\
+  \
+  hwfAllPeakLowE->GetYaxis()->SetRangeUser(1, hwfAllPeakMidE->GetMaximum());\
+  hwfAllPeakLowE->SetLineColor(1);\
+  hwfAllPeakLowE->Draw("hist");\
+  \
+  hwfAllPeakMidE->SetLineColor(2);\
+  hwfAllPeakMidE->Draw("hist same");\
+  \
+  hwfAllPeakMidHighE->SetLineColor(3);\
+  hwfAllPeakMidHighE->Draw("hist same");\
+  \
+  hwfAllPeakHighE->SetLineColor(4);\
+  hwfAllPeakHighE->Draw("hist same");\
+  \
+  l7->SetHeader("Energy or Cut");\
+  l7->AddEntry(hwfAllPeakLowE, "8-20 PE", "l");\
+  l7->AddEntry(hwfAllPeakMidE, "20-60 PE", "l");\
+  l7->AddEntry(hwfAllPeakMidHighE, "60-100 PE", "l");\
+  l7->AddEntry(hwfAllPeakHighE, "100+ PE", "l");\
+  l7->Draw("same");\
+  \
+  c7->Update();\
+  \
+  TCanvas * c8 = new TCanvas();\
+  TLegend * l8 = new TLegend();\
+  gStyle->SetOptStat(0);\
+  \
+  hwfHott0_lowE->SetLineColor(1);\
+  hwfHott0_lowE->Draw("hist");\
+  \
+  hwfHott0_highE->SetLineColor(2);\
+  hwfHott0_highE->Draw("hist same");\
+  \
+  hwfnoScintt0_highE->SetLineColor(3);\
+  hwfnoScintt0_highE->Draw("hist same");\
+  \
+  l8->AddEntry(hwfHott0_lowE, "hot t0, 8 < bare PE < 20", "l");\
+  l8->AddEntry(hwfHott0_highE, "hot t0, 150 < bare PE", "l");\
+  l8->AddEntry(hwfnoScintt0_highE, "'no scint' t0, 60 < bare PE", "l");\
+  l8->Draw("same");\
+  c8->Update();\
+  \
+  TCanvas * c9 = new TCanvas();\
+  h2allPEvsNhit->Draw("colz");\
+  \
+  c9->SetLogz();\
+  c9->Update();\
+  \
+  TCanvas * c10 = new TCanvas();\
+  h2chVsPEratio->Draw("colz");\
+  c10->SetLogz();\
+  c10->Update();\
+  \
+  return;\
+\}\
+}

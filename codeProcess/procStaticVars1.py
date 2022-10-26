@@ -125,6 +125,7 @@ tt.Branch("tsEnd", tend, "tsEnd/F")
 ######### BUILDING charge HISTS #########
 qMax = 20
 hq_fAll = TH1F("hq_fAll", "hq_fAll", 200, -1, qMax)
+
 hq_fChi2 = TH1F("hq_fChi2", "hq_fChi2", 200, -1, qMax)
 
 hq_range1 = TH1F("hq_range1", "hq_range1", 200, -1, qMax)
