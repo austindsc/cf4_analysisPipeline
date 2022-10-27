@@ -22,6 +22,8 @@ print("Austin's new waveform viewer")
 
 defRun = 202205271113
 
+SATURATED = 5
+
 if __name__ == "__main__":
 	pars = argparse.ArgumentParser()
 	pars.add_argument("--first", type = int, required = False, default = 0, help = "what event to start in")
@@ -73,8 +75,8 @@ if __name__ == "__main__":
 	
 	traces = data.get("sipm_traces") # [event][channel][waveform value]
 	times = data.get("time_stamp")
-	print(traces.shape)
-	print(traces[0][0])
+	# print(traces.shape)
+	# print(traces[0][0])
 
 	# loop through 1000 pulses (or less if not many events)
 	for ind in range(args.first, args.first + min(len(traces), args.N)):
@@ -86,6 +88,11 @@ if __name__ == "__main__":
 		tr0 = traces[ind][0]
 		tr1 = traces[ind][1]
 		tr2 = traces[ind][2]
+
+		print(min(tr0))
+		if min(tr0) <= SATURATED:
+			print("saturated")
+			continue
 
 		if ind%100 == 0: # printing helper
 			print("event", ind)
@@ -124,17 +131,29 @@ if __name__ == "__main__":
 		# qRange, rEarly, rLate = minFixRangeIntegrate(data = s1v, bline = blines.get('v'), early = 250, late = 450)
 		# qSmart1, fEarly, fLate = toFlatRangeIntegrate(data  = s1v, bline = blines.get('v'), blineRMS = blines.get('e'), extra = 0)
 		# 
-		bline = getBaselineAvg(data = x0, start = 0, end = )
+		bline = getBaselineAvg(data = tr0, start = 0, end = int(600/16))
 
 		if args.live == True:
 			ax0.clear() # somehow reset but keep last N pulses
-			ax0.plot(x0, tr0, alpha = 0.4, label = "ch 0")
-   
-			rcWfm1 = 0 + BaselineRestoration(tr0, 300, 0, 16)
-			ax0.plot(x0, rcWfm1, alpha = 0.4, label = "RC = 300")
+			ax0.plot(x0, tr0-bline['v'], alpha = 0.4, label = "ch 0")
 
-			rcWfm = 0 + BaselineRestoration(tr0, 3000, 0, 16)
-			ax0.plot(x0, rcWfm, alpha = 0.4, label = "RC = 3000")
+			# fixed1 = undoRC(tr0-bline['v'], width = 16, tau = 3000)
+			# ax0.plot(x0, fixed1, label = "undone")
+
+			fixed2 = BaselineRestoration(wfm = tr0-bline['v'], tau = 2900, width = 16)
+			ax0.plot(x0, fixed2, label = "david's code, 2900")
+
+			fixed3 = BaselineRestoration(wfm = tr0-bline['v'], tau = 2000, width = 16)
+			ax0.plot(x0, fixed3, label = "david's code, 2000")
+
+			fixed4 = BaselineRestoration(wfm = tr0-bline['v'], tau = 4000, width = 16)
+			ax0.plot(x0, fixed4, label = "david's code, 4000")
+   
+			# rcWfm1 = 0 + BaselineRestoration(tr0, 300, 0, 16, bline = bline['v'])
+			# ax0.plot(x0, rcWfm1, alpha = 0.4, label = "RC = 300")
+
+			# rcWfm = 0 + BaselineRestoration(tr0, 3000, 0, 16, bline = bline['v'])
+			# ax0.plot(x0, rcWfm, alpha = 0.4, label = "RC = 3000")
 
 			# ax0.plot(x1, tr1, alpha = 0.4, label = "ch 1")
 			# ax0.plot(x2, tr2, alpha = 0.4, label = "ch 2")

@@ -10,12 +10,12 @@ import matplotlib.pyplot as plt
 import argparse
 from array import array
 
-
 import sys
 sys.path.append('..')
 from SBCcode.DataHandling import ReadBinary as rb
 
 from ozTools import *
+# from outputManager import *
 
 import ROOT
 from ROOT import TFile, TTree
@@ -33,7 +33,7 @@ defDir = ""
 if __name__ == "__main__":
 	pars = argparse.ArgumentParser()
 	pars.add_argument("--first", type = int, required = False, default = 0, help = "what event to start in")
-	pars.add_argument("--N", type = int, required = False, default = 10, help = "N events to plot/analyze")
+	pars.add_argument("--N", type = int, required = False, default = -1, help = "N events to plot/analyze. default -1 runs all")
 	pars.add_argument("--run", type = str, required = False, default = defRun, help = "desired run number")
 	pars.add_argument("--live", type = bool, required = False, default = False, help = "do viewing with user input")
 	pars.add_argument("--view", type = int, required = False, default = False, help = "view final plots")
@@ -50,7 +50,7 @@ if __name__ == "__main__":
 	
 	# files and paths
 	raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawData/caen"
-	savePath = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/"+args.outDir+"/"
+	savePath = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/"+args.outDir
 	if not os.path.exists(savePath):
 		print("savePath doesn't exist")
 		print(savePath)
@@ -77,56 +77,59 @@ if __name__ == "__main__":
 	### defining TTree and all variables ###
 	tt = TTree("tt", "proc static variables, run:" + str(args.run))
 	nchans = 3
-	height1 = np.empty((nchans), dtype = "float32")
-	tt.Branch("hbline_min", height1, "hbline_min/F")
+
+	tevTime = np.empty((1), dtype = "float32")
+	tt.Branch("evTime", tevTime, "evTime/F")
 
 	blineVal = np.empty((nchans), dtype = "float32")
-	tt.Branch("blineV", blineVal, "blineV/F")
+	tt.Branch("blineV", blineVal, 'blineV[' + str(nchans) + ']/F')
 
 	blineE = np.empty((nchans), dtype = "float32")
 	tt.Branch("blineE", blineE, "blineE/F")
 
-	qr1 = np.empty((nchans), dtype = "float32")
-	tt.Branch("qr300", qr1, "qr300/F")
+	height1 = np.empty((nchans), dtype = "float32")
+	tt.Branch("hbline_min", height1, "hbline_min/F")
 
-	qr2 = np.empty((nchans), dtype = "float32")
-	tt.Branch("qr200", qr2, "qr200/F")
+	# qr1 = np.empty((nchans), dtype = "float32")
+	# tt.Branch("qr300", qr1, "qr300/F")
 
-	qr3 = np.empty((nchans), dtype = "float32")
-	tt.Branch("qr800", qr3, "qr800/F")
+	# qr2 = np.empty((nchans), dtype = "float32")
+	# tt.Branch("qr200", qr2, "qr200/F")
 
-	qs1 = np.empty((nchans), dtype = "float32")
-	tt.Branch("qs50", qs1, "qs50/F")
+	# qr3 = np.empty((nchans), dtype = "float32")
+	# tt.Branch("qr800", qr3, "qr800/F")
 
-	tstart = np.empty((nchans), dtype = "float32")
-	tt.Branch("tStart", tstart, "tsStart/F")
+	# qs1 = np.empty((nchans), dtype = "float32")
+	# tt.Branch("qs50", qs1, "qs50/F")
 
-	tend = np.empty((nchans), dtype = "float32")
-	tt.Branch("tsEnd", tend, "tsEnd/F")
+	# tstart = np.empty((nchans), dtype = "float32")
+	# tt.Branch("tStart", tstart, "tsStart/F")
+
+	# tend = np.empty((nchans), dtype = "float32")
+	# tt.Branch("tsEnd", tend, "tsEnd/F")
 
 	### setup plotting ###
 	if args.live == True:
 		fig, axes = plt.subplots(1, 1, figsize = (8, 6))
 		ax0 = axes
 		plt.ion()
-		plt.show()
-		plt.plot()
+		# plt.show()
+		# plt.plot()
 		
 
 	## LOAD THE DATA	
 	path = os.path.join(raw_directory, str(args.run)+".bin")
 	try:
-		os.path.exists(path+"zz")
+		os.path.exists(path)
 	except:
-		print("failed")
-	exit()
+		print("failed to load data")
+		exit()
 	if not args.caen: #old
 		path = os.path.join(raw_directory, run, str(args.g), "PMTtraces.bin")
 	
 	data = rb.ReadBlock(path)
 	for key, value in data.items():
 		print(key)
-	# print(data.get("sample_rate"))
 	
 	traces = data.get("sipm_traces") # [event][channel][waveform value]
 	times = data.get("time_stamp")
@@ -134,23 +137,57 @@ if __name__ == "__main__":
 	# print(traces[0][0])
 
 	# loop through 1000 pulses (or less if not many events)
-	for ind, [time, channels] in enumerate(zip(times[0:args.N], traces[0:args.N])):
+	for ind, [evtime, channels] in enumerate(zip(times[0:args.N], traces[0:args.N])):
 		
-		print("event time %i" % time)
-		
-		# channel loop
-		for ich, wfm in enumerate(channels):
-			x = np.arange(0, len(wfm) * 16, 16)
-			
-			if args.live:
-				ax0.plot(x, wfm, alpha = 0.4, label = "ch 0")
-			
+		x = np.arange(0, len(channels[0]) * 16, 16)
+		if(not (channels[0].size == channels[1].size == channels[2].size)):
+			print("issue with lengths")
+			continue
 
-
-		if ind%100 == 0: # printing helper
+		if ind%1000 == 0: # printing helper
 			print("event", ind)
+		
+		#### channel loop
+		for ich, wfm in enumerate(channels):
+
+			#### Channel Processing ####
+			# baseline
+			# chargeFixedRange1
+			# chargeFixedRange2
+			# charge Smart
+			# charge RC range 1
+			# charge RC range 2
+			# charge RC Smart
+			blines = getBaselineAvg(data = wfm, start = 0, end = int(500/16))
+			blineVal[ich] = blines.get("v")
+			vbline[ich] = blines.get("v")
+			blineE[ich] = blines.get("e")
 
 
+			if args.live:
+				print("event time %i" % evtime)
+				ax0.plot(x, wfm, alpha = 0.4, label = "ch 0")
+		#### done channel loop
+		
+		#### Event Processing
+		tevTime[0] = evtime
+
+		#### Fill Tree
+		tt.Fill()
+
+		##### plotting 
+		if args.live == True:
+			plt.pause(0.1)
+			ax0.minorticks_on()
+			ax0.grid(True)
+			ax0.legend()
+			plt.show()
+			input("press any key to continue")
+			ax0.clear()
+
+	hFile.cd()
+	tt.Write()
+	hFile.Close()
 
 		######## do processing ########
 		# minTime = np.argmin(s1v)
