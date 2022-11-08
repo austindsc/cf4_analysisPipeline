@@ -64,19 +64,20 @@ def minFixRangeIntegrate(data, bline, early, late):
 	return tot, iMin-early, iMin + late
 
 # finds the number of array movements until average of +2*nAvg samples is equal to baseline RMS/4 (safety factor)
-def findFlat(data, bline, blineRMS, iMin: int, forward: bool = True): # true means go forward
-	nAvg = 5
+# only works for negative polarity pulses?
+def findFlat(data, bline, blineRMS, iMin: int, forward: bool = True): # true means go forward in time
+	nAvg = 3
 
 	iFlat = iMin
-	avg = np.average(data[iFlat:iFlat+2*nAvg])
+	avg = np.average(data[iFlat-nAvg:iFlat+nAvg])
 
 	a = 1
 	if forward == False:
 		a = -1
 
-	while abs(avg - bline) > 0.25*blineRMS and (iFlat > nAvg and iFlat < len(data) - nAvg):
+	while bline - avg > blineRMS and (iFlat > nAvg and iFlat < len(data) - nAvg):
 		iFlat = iFlat + a
-		avg = np.average(data[iFlat:iFlat+2*nAvg])
+		avg = np.average(data[iFlat-nAvg:iFlat+nAvg])
 
 	return abs(iFlat-iMin)
 
@@ -96,12 +97,14 @@ def toFlatRangeIntegrate(data, bline, blineRMS, extra):
 	if early < 0:
 		early = 0
 
-	late = int(iMin + forwardGap + extra)
+	late = iMin + forwardGap + extra
 	if late > len(data):
 		late = len(data) - 1
 	# print("flat = ", iMin - reverseGap)
 	# print("flat = ", iMin + forwardGap)
+
 	tot = 0
+	# np.sum(data[early : late] - bline*(late-early))
 	for i in data[early : late]:
 		height = bline - i
 		tot = height + tot

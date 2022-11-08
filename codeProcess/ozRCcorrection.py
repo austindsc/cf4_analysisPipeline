@@ -11,13 +11,13 @@ def howAboutThis(a):
         a[i] = -val
     return
 
+## must do baseline subtraction first (<V> = 0)
 def BaselineRestoration(wfm: np.array, tau: float, width: float = 16.0):
     
     vShift = np.zeros(len(wfm)) # initial condition
     corrWfm = np.zeros(len(wfm))
     
     factor = np.exp(-width/tau)
-    print("factor = ", factor)
 
     # recursive shift
     for i, input in enumerate(wfm):
@@ -30,7 +30,7 @@ def BaselineRestoration(wfm: np.array, tau: float, width: float = 16.0):
     
     return corrWfm
 
-
+## maybe correct for RC signal but NOT for AC coupling
 def myRCrestore(wfm: np.array, tau: float, width: float = 16.0, bline: float = 0):
 
     corrWfm = wfm - bline
@@ -45,7 +45,7 @@ def myRCrestore(wfm: np.array, tau: float, width: float = 16.0, bline: float = 0
 
     return
 
-
+## Same as above
 def undoRC(wfm, width, tau): 
   fixedRC = np.copy(wfm)
 
