@@ -66,7 +66,7 @@ def minFixRangeIntegrate(data, bline, early, late):
 # finds the number of array movements until average of +2*nAvg samples is equal to baseline RMS/4 (safety factor)
 # only works for negative polarity pulses?
 def findFlat(data, bline, blineRMS, iMin: int, forward: bool = True): # true means go forward in time
-	nAvg = 3
+	nAvg = 4
 
 	iFlat = iMin
 	avg = np.average(data[iFlat-nAvg:iFlat+nAvg])

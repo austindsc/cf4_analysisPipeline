@@ -51,7 +51,8 @@ if __name__ == "__main__":
 	pars.add_argument("--start", type = int, required = False, default = 0, help = "what event to start in")
 	pars.add_argument("--N", type = int, required = False, default = -1, help = "N events to plot/analyze. default -1 runs all")
 	pars.add_argument("--run", type = str, required = False, default = defRun, help = "desired run number")
-	pars.add_argument("--live", type = bool, required = False, default = False, help = "do viewing with user input")
+
+	pars.add_argument("--live", type = bool, required = False, default = False, action=argparse.BooleanOptionalAction, help = "do viewing with user input")
 	pars.add_argument("--caen", type = bool, required = False, default = True, help = "is this new data (on caen)")
 	pars.add_argument("--outDir", type = str, required = False, default = defDir, help = "name of ouptut directory in main directory")
 	pars.add_argument("--outName", type = str, required = False, help = "if custom naming of output file is desired, input name here (without .root suffix)")
@@ -62,6 +63,10 @@ if __name__ == "__main__":
 	iSipm = 0 # sipm data is first
 	iDis = 1 # discriminator data second
 	args=pars.parse_args()
+
+	print(args.live)
+	if args.live==True:
+		exit()
 	
 	# files and paths
 	raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawData/caen"
@@ -107,23 +112,16 @@ if __name__ == "__main__":
 
 	tt_qFixed = np.empty((nchans), dtype = "float32")
 	tt.Branch("qFixed", tt_qFixed, "qFixed/F")
-
 	tt_qFlat = np.empty((nchans), dtype = "float32")
 	tt.Branch("qFlat", tt_qFlat, "qFlat/F")
-
 	tt_tFlatStart = np.empty((nchans), dtype = "float32")
 	tt.Branch("tStart", tt_tFlatStart, "tsStart/F")
-
 	tt_tFlatEnd = np.empty((nchans), dtype = "float32")
 	tt.Branch("tsEnd", tt_tFlatEnd, "tsEnd/F")
-
 	tt_qRCFixed = np.empty((nchans), dtype = "float32")
 	tt.Branch("qRCFixed", tt_qRCFixed, "qRCFixed/F")
-
 	tt_qRCFlat = np.empty((nchans), dtype = "float32")
 	tt.Branch("qRCFlat", tt_qRCFlat, "qRCFlat/F")
-
-
 
 	### setup plotting ###
 	if args.live == True:
@@ -151,6 +149,7 @@ if __name__ == "__main__":
 	# print(traces[0][0])
 
 	#### Event Loop ####
+	Nevents = len(times)
 	for ind, [evtime, channels] in enumerate(zip(times[args.start:args.N], traces[args.start:args.N])):
 		
 		x = np.arange(0, len(channels[0]) * SAMPLING, SAMPLING)
@@ -159,7 +158,7 @@ if __name__ == "__main__":
 			continue
 
 		if ind%1000 == 0: # printing helper
-			print("event", ind, end = "\r")
+			print("event %ik/%ik" %(ind/1000, Nevents/1000), end = "\r")
 		if args.live == True:
 			print("\nstart index = ", ind+args.start)
 		
@@ -193,7 +192,8 @@ if __name__ == "__main__":
 			tt_min[ich] = min(rcWfm)
 			tt_qRCFixed[ich],rcEarly, rcLate = minFixRangeIntegrate(data = rcWfm, bline = 0.0, early = int(180/SAMPLING), late = int(500/SAMPLING))
 			tt_qRCFlat[ich], rcSEarly, rcSLate = toFlatRangeIntegrate(data  = rcWfm, bline = 0.0, blineRMS = 4*blines.get('e'), extra = 3)
-			print("end of RCFlat", rcSLate)
+			# print("end of RCFlat", rcSLate)
+
 			### plotting channels and printing ###
 			colors = ["b", "m", "k"]
 			if args.live == True:
@@ -212,16 +212,7 @@ if __name__ == "__main__":
 				ax0.axvline(SAMPLING*(rcSLate), color = f'{colors[ich]}', linestyle = "-.", alpha = 0.8, label = "RC limit (to baseline)")
 				ax0.axvline(SAMPLING*rcSEarly, color = f'{colors[ich]}', linestyle = "-.", alpha = 0.8)
 
-				ax0.set_xlim(0, 3000)
-				print(f"ch {ich}", end = "\n")
 		#### done channel loop
-
-		print("fixed charge", tt_qFixed)
-		print("flat charge", tt_qFlat)
-		print("tt_qRCFixed", tt_qRCFixed)
-		print("tt_qRCFlat", tt_qRCFlat)
-
-		print("tt_min", tt_min)
 		
 		#### Event level Processing ####
 		tt_evTime[0] = evtime
@@ -231,8 +222,12 @@ if __name__ == "__main__":
 
 		##### plotting event level #####
 		if args.live == True:
-
-			# print("event time %i" % evtime)
+			print("event time %i" % evtime)
+			print("fixed charge", tt_qFixed)
+			print("flat charge", tt_qFlat)
+			print("tt_qRCFixed", tt_qRCFixed)
+			print("tt_qRCFlat", tt_qRCFlat)
+			print("tt_min", tt_min)
 
 			plt.pause(0.05)
 			ax0.minorticks_on()
