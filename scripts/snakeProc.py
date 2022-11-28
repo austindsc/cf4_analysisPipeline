@@ -6,6 +6,10 @@ from multiprocessing import Pool
 def run_process(command):
 	subprocess.run(command, shell = True)
 
+
+def getFileList(path):
+	
+
 cA = "python3 ../codeProcess/procStaticVars1.py --N 50000 --outName 50koutProcStatic2_ "
 
 runList = ["20210723_5", "20210812_2"]

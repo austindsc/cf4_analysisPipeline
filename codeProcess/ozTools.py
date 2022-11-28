@@ -5,6 +5,7 @@
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import scipy.stats as stats
 
 from ROOT import ROOT
 from ROOT import TH1F
@@ -38,6 +39,9 @@ def getBaselineHist(data, vScale):
 def getBaselineAvg(data, start, end):
 	return {'v': np.mean(data[start:end]), 'e': np.std(data[start:end])}
 
+def getBaselineMode(data, start, end):
+	return {'v': float(stats.mode(data[start:end], keepdims = True)[0][0]), 'e': np.std(data[start:end])}
+
 # should also include dt in here but whatever
 def simpleIntegrate(data, bline):
 	#currently setup for negative polarity
@@ -47,9 +51,8 @@ def simpleIntegrate(data, bline):
 		tot = height + tot
 	return tot
 
-def minFixRangeIntegrate(data, bline, early, late):
+def minFixRangeIntegrate(data, bline, early, late, iMin):
 
-	iMin = np.argmin(data)
 	if iMin - early < 0:
 		early = iMin
 	if iMin + late > len(data):
@@ -65,8 +68,7 @@ def minFixRangeIntegrate(data, bline, early, late):
 
 # finds the number of array movements until average of +2*nAvg samples is equal to baseline RMS/4 (safety factor)
 # only works for negative polarity pulses?
-def findFlat(data, bline, blineRMS, iMin: int, forward: bool = True): # true means go forward in time
-	nAvg = 4
+def findFlat(data, bline, blineRMS, iMin: int, forward: bool = True, nAvg = 4): # true means go forward in time
 
 	iFlat = iMin
 	avg = np.average(data[iFlat-nAvg:iFlat+nAvg])
@@ -75,7 +77,7 @@ def findFlat(data, bline, blineRMS, iMin: int, forward: bool = True): # true mea
 	if forward == False:
 		a = -1
 
-	while bline - avg > blineRMS and (iFlat > nAvg and iFlat < len(data) - nAvg):
+	while bline - avg > blineRMS and (iFlat-nAvg >= 0 and iFlat + nAvg <= len(data)):
 		iFlat = iFlat + a
 		avg = np.average(data[iFlat-nAvg:iFlat+nAvg])
 
@@ -84,14 +86,11 @@ def findFlat(data, bline, blineRMS, iMin: int, forward: bool = True): # true mea
 
 # modify this so that it integrates until equal to baseline
 # and don't go extra distance on tail end (avoid overshoot on large pulses)
-def toFlatRangeIntegrate(data, bline, blineRMS, extra):
+def toFlatRangeIntegrate(data, bline, blineRMS, extra, iMin, nAvg = 4):
 
-	#	! hello
-	# TODO yoo
-	
-	iMin = np.argmin(data)
-	forwardGap = findFlat(data = data, bline = bline, blineRMS = blineRMS, iMin = iMin, forward = True)
-	reverseGap = findFlat(data = data, bline = bline, blineRMS = blineRMS, iMin = iMin, forward = False)
+	# iMin = np.argmin(data)
+	forwardGap = findFlat(data = data, bline = bline, blineRMS = blineRMS, iMin = iMin, forward = True, nAvg = nAvg)
+	reverseGap = findFlat(data = data, bline = bline, blineRMS = blineRMS, iMin = iMin, forward = False, nAvg = nAvg)
 
 	early = iMin - reverseGap - extra
 	if early < 0:
@@ -102,12 +101,11 @@ def toFlatRangeIntegrate(data, bline, blineRMS, extra):
 		late = len(data) - 1
 	# print("flat = ", iMin - reverseGap)
 	# print("flat = ", iMin + forwardGap)
-
+	if early >= late:
+		late = early + 1
+		
 	tot = 0
-	# np.sum(data[early : late] - bline*(late-early))
-	for i in data[early : late]:
-		height = bline - i
-		tot = height + tot
+	tot = bline*(late-early) - np.sum(data[early : late])
 	return tot, early, late
 
 def  minAverage(data, bline, spread): # average the data points around the minimum value

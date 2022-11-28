@@ -31,16 +31,69 @@ from ROOT import gROOT
 
 def on_press(event):
 	# print('press', event.key)
-	if event.key == 'x' or event.key == 'q':
+	if event.key == 'x' or event.key == 'q' or event.key == 'escape':
 		exit()
 	sys.stdout.flush()
 
 
+	#	! hello
+	# TODO yoo
+	
+"""
+1. measure how long the pulse is saturated
+2. get a better 'width' estimator 
+3. don't skip everything. just fix the error from the bad average in findFlat
+
+4. then we can use 1 and 2 to 'correct' for saturation by using charge vs height and width, 
+and the RC correction?
+^^do this in postprocessing
+
+
+other
+1. add Nmsising and other stuff to print output
+2. don't do any cutting here. do it in analysis (even though i want to here!) ?
+
+try adding a fitter? No. too slow. not what we want. time to move forward.
+
+"""
+
+"""
+with ken Nov 11
+
+fixed/toFlat integral --> RC correction integral
+FWHM on 'good pulses' --> RC charge or fixed charge
+maybe 'to flat' estimator is better - doesn't need pulse height
+
+overshoot --> linear with pulse size
+
+Nsaturation - number of bins at minimum
+
+"""
+
+
+"""
+__ what does this code do? __
+calculate fixed charge from minimum
+no pulse (small fixed charge or min-baseline is small)
+	- skip
+early pulse
+	- do normal (remove early pulses in postprocessing)
+saturated
+	- count number of bins at maximum (going left to right)
+normal pulse
+	- fixed, toFlat charge
+	- RC correction, fixed and toFlat charge
+
+
+"""
+
 print("Austin's new processor")
 
-SATURATED = 5.
+SATURATED = 6.
 SAMPLING = 16.
-BLINEEND = 600.
+BLINEEND = 500.
+NULLVAL = 0.0
+SKIPENDTIME = 500.
 defRun = 202205271113
 defDir = ""
 # defDir = "caenTesting"
@@ -63,10 +116,6 @@ if __name__ == "__main__":
 	iSipm = 0 # sipm data is first
 	iDis = 1 # discriminator data second
 	args=pars.parse_args()
-
-	print(args.live)
-	if args.live==True:
-		exit()
 	
 	# files and paths
 	raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawData/caen"
@@ -98,30 +147,37 @@ if __name__ == "__main__":
 	tt = TTree("tt", "proc static variables, run:" + str(args.run))
 	nchans = 3
 
-	tt_evTime = np.empty((1), dtype = "float32")
+	tt_chInfo = np.zeros((nchans), dtype = "int")
+	tt.Branch("chInfo", tt_chInfo, "chInfo[" + str(nchans) +"]/I")
+	pulseDict = {"early":-1, "empty": 0, "normal": 1, "saturated":2	}
+
+	tt_evTime = np.zeros((1), dtype = "float32")
 	tt.Branch("evTime", tt_evTime, "evTime/F")
 
-	tt_blineV = np.empty((nchans), dtype = "float32")
+	tt_blineV = np.zeros((nchans), dtype = "float32")
 	tt.Branch("blineV", tt_blineV, 'blineV[' + str(nchans) + ']/F')
-	tt_blineE = np.empty((nchans), dtype = "float32")
+	tt_blineE = np.zeros((nchans), dtype = "float32")
 	tt.Branch("blineE", tt_blineV, 'blineE[' + str(nchans) + ']/F')
-	tt_min = np.empty((nchans), dtype="float32")
-	tt.Branch("minV", tt_min, 'minimum[' + str(nchans) + ']/F')
-	tt_xMin = np.empty((nchans), dtype="float32")
-	tt.Branch("timeMin", tt_xMin, 'minimum[' + str(nchans) + ']/F')
+	tt_min = np.zeros((nchans), dtype="float32")
+	tt.Branch("minV", tt_min, 'minV[' + str(nchans) + ']/F')
+	##add 3 bin averag around minimum
+	tt_xMin = np.zeros((nchans), dtype="float32")
+	tt.Branch("timeMin", tt_xMin, 'timeMin[' + str(nchans) + ']/F')
 
-	tt_qFixed = np.empty((nchans), dtype = "float32")
-	tt.Branch("qFixed", tt_qFixed, "qFixed/F")
-	tt_qFlat = np.empty((nchans), dtype = "float32")
-	tt.Branch("qFlat", tt_qFlat, "qFlat/F")
-	tt_tFlatStart = np.empty((nchans), dtype = "float32")
-	tt.Branch("tStart", tt_tFlatStart, "tsStart/F")
-	tt_tFlatEnd = np.empty((nchans), dtype = "float32")
-	tt.Branch("tsEnd", tt_tFlatEnd, "tsEnd/F")
-	tt_qRCFixed = np.empty((nchans), dtype = "float32")
-	tt.Branch("qRCFixed", tt_qRCFixed, "qRCFixed/F")
-	tt_qRCFlat = np.empty((nchans), dtype = "float32")
-	tt.Branch("qRCFlat", tt_qRCFlat, "qRCFlat/F")
+	tt_qFixed = np.zeros((nchans), dtype = "float32")
+	tt.Branch("qFixed", tt_qFixed, "qFixed[" + str(nchans) + "]/F")
+	tt_qFlat = np.zeros((nchans), dtype = "float32")
+	tt.Branch("qFlat", tt_qFlat, "qFlat[" + str(nchans) + "]/F")
+	tt_tFlatStart = np.zeros((nchans), dtype = "float32")
+	tt.Branch("tFlatStart", tt_tFlatStart, "tFlatStart[" + str(nchans) + "]/F")
+	tt_tFlatEnd = np.zeros((nchans), dtype = "float32")
+	tt.Branch("tFlatEnd", tt_tFlatEnd, "tFlatEnd[" + str(nchans) + "]/F")
+	## write better FWHM width estimator
+	## Nminimum bins 
+	tt_qRCFixed = np.zeros((nchans), dtype = "float32")
+	tt.Branch("qRCFixed", tt_qRCFixed, "qRCFixed[" + str(nchans) + "]/F")
+	tt_qRCFlat = np.zeros((nchans), dtype = "float32")
+	tt.Branch("qRCFlat", tt_qRCFlat, "qRCFlat[" + str(nchans) + "]/F")
 
 	### setup plotting ###
 	if args.live == True:
@@ -148,8 +204,12 @@ if __name__ == "__main__":
 	# print(traces.shape)
 	# print(traces[0][0])
 
+	NSaturated = 0
+	Nmissing = 0
+	Nearly = 0
+
 	#### Event Loop ####
-	Nevents = len(times)
+	Nevents = len(times[args.start:args.N])
 	for ind, [evtime, channels] in enumerate(zip(times[args.start:args.N], traces[args.start:args.N])):
 		
 		x = np.arange(0, len(channels[0]) * SAMPLING, SAMPLING)
@@ -157,8 +217,9 @@ if __name__ == "__main__":
 			print("issue with lengths")
 			continue
 
-		if ind%1000 == 0: # printing helper
-			print("event %ik/%ik" %(ind/1000, Nevents/1000), end = "\r")
+		pscale = 1000
+		if ind%pscale == 1: # printing helper
+			print("event %ik/%ik" %(ind/pscale, Nevents/pscale), end = "\r")
 		if args.live == True:
 			print("\nstart index = ", ind+args.start)
 		
@@ -166,51 +227,76 @@ if __name__ == "__main__":
 		for ich, wfm in enumerate(channels):
 
 			#### Channel Level Processing ####
-			# baseline
-			# chargeFixedRange1
-			# chargeFixedRange2
-			# charge Smart
-			# charge RC range 1
-			# charge RC range 2
-			# charge RC Smart
-
 			# Baselines #
-			blines = getBaselineAvg(data = wfm, start = 0, end = int(BLINEEND/SAMPLING))
+			# blines = getBaselineAvg(data = wfm, start = 0, end = int(BLINEEND/SAMPLING))
+			blines = getBaselineMode(data = wfm, start = 0, end = int(BLINEEND/SAMPLING))
 			tt_blineV[ich] = blines.get("v")
 			tt_blineE[ich] = blines.get("e")
-			# print("bline Error = ", blines.get("e"))
+
+			binMin = np.argmin(wfm[0:-int(SKIPENDTIME/SAMPLING)])
+			vMin = min(wfm[0:-int(SKIPENDTIME/SAMPLING)])
+			tt_xMin[ich] = binMin*SAMPLING
+			tt_min[ich] = vMin
 
 			# Charge #
-			tt_qFixed[ich], rEarly, rLate = minFixRangeIntegrate(data = wfm, bline = blines.get('v'), early = int(180/SAMPLING), late = int(500/SAMPLING))
-			tt_qFlat[ich], fEarly, fLate = toFlatRangeIntegrate(data = wfm, bline = blines.get('v'), blineRMS = 5*blines.get('e'), extra = 10)
-			tt_tFlatStart[ich] = fEarly*SAMPLING
-			tt_tFlatEnd[ich] = fLate*SAMPLING
+			testqFlat, rEarly, rLate = minFixRangeIntegrate(data = wfm, bline = blines.get('v'), early = int(180/SAMPLING), late = int(500/SAMPLING), iMin = binMin)
+			tt_qFixed[ich] = testqFlat
+			tt_chInfo[ich] = pulseDict.get("normal")
+			fEarly, fLate = 0, 0
+			rcEarly, rcLate = 0, 0
+			rcSEarly, rcSLate = 0, 0
+			tt_qFlat[ich] = NULLVAL
+			tt_tFlatStart[ich] = NULLVAL
+			tt_tFlatEnd[ich] = NULLVAL
+			tt_qRCFixed[ich] = NULLVAL
+			tt_qRCFlat[ich] = NULLVAL
 
-			# RC Correction
-			rcWfm = BaselineRestoration(wfm = wfm-blines.get("v"), tau = 2900, width = SAMPLING)
-			tt_xMin[ich] = np.argmin(rcWfm)*SAMPLING
-			tt_min[ich] = min(rcWfm)
-			tt_qRCFixed[ich],rcEarly, rcLate = minFixRangeIntegrate(data = rcWfm, bline = 0.0, early = int(180/SAMPLING), late = int(500/SAMPLING))
-			tt_qRCFlat[ich], rcSEarly, rcSLate = toFlatRangeIntegrate(data  = rcWfm, bline = 0.0, blineRMS = 4*blines.get('e'), extra = 3)
-			# print("end of RCFlat", rcSLate)
+			height = abs(vMin - blines.get("v"))
+			
+			if height < 5: # zero pulse, or too small
+				# print(f"ch{ich} EMPTY")
+				Nmissing+=1
+				tt_chInfo[ich] = pulseDict.get("empty")
+				pass
+			elif binMin < int(BLINEEND/SAMPLING):
+				# print(f"ch{ich} EARLY")
+				# print("binMin x sample = ", binMin * SAMPLING)
+				Nearly +=1
+				tt_chInfo[ich] = pulseDict.get("early")
+			elif vMin <= SATURATED:
+				# print(f"ch{ich} SATURATED")
+				tt_chInfo[ich] = pulseDict.get("saturated")
+				NSaturated += 1
+				## do saturated processing ##
+			else:
+				tt_qFlat[ich], fEarly, fLate = toFlatRangeIntegrate(data = wfm, bline = blines.get('v'), blineRMS = 4*blines.get('e'), extra = 5, iMin = binMin)
+				tt_tFlatStart[ich] = fEarly*SAMPLING
+				tt_tFlatEnd[ich] = fLate*SAMPLING
+
+				# RC Correction
+				rcWfm = BaselineRestoration(wfm = wfm-blines.get("v"), tau = 2900, width = SAMPLING)
+				tt_qRCFixed[ich],rcEarly, rcLate = minFixRangeIntegrate(data = rcWfm, bline = 0.0, early = int(180/SAMPLING), late = int(700/SAMPLING), iMin = binMin)
+				tt_qRCFlat[ich], rcSEarly, rcSLate = toFlatRangeIntegrate(data  = rcWfm, bline = 0.0, blineRMS = 4*blines.get('e'), extra = 5, iMin = binMin)
 
 			### plotting channels and printing ###
 			colors = ["b", "m", "k"]
 			if args.live == True:
-
+				
 				ax0.plot(x, wfm, f'{colors[ich]}', alpha = 0.6, label = f"ch {ich}")
 				ax0.axhline(y = blines.get('v'), color = "m", linewidth = 1, alpha = 0.4)
 
-				ax0.axvline(SAMPLING*fEarly, color = f'{colors[ich]}', alpha = 0.6, label = "to baseline limit")
-				# ax0.axvline(tt_xMin)
-				ax0.axvline(SAMPLING*fLate, color = f'{colors[ich]}', alpha = 0.6)
+				if tt_chInfo[ich] == 1:
+					ax0.axvline(SAMPLING*fEarly, ymax = 1., ymin = 0.5, color = f'{colors[ich]}', linestyle = '-', label = "normal - flat")
+					# ax0.axvline(tt_xMin)
+					ax0.axvline(SAMPLING*fLate, ymax = 1., ymin = 0.5, color = f'{colors[ich]}', linestyle = '-')
 
-				ax0.plot(x, rcWfm+blines.get('v'), f'--{colors[ich]}', alpha = 0.8, label = f"rc ch {ich}")
-				ax0.axvline(SAMPLING*rcLate, color = f'{colors[ich]}', linestyle = "--", alpha = 0.8, label = "RC limit (fixed)")
-				ax0.axvline(SAMPLING*rcEarly, color = f'{colors[ich]}',linestyle = "--", alpha = 0.8)
-
-				ax0.axvline(SAMPLING*(rcSLate), color = f'{colors[ich]}', linestyle = "-.", alpha = 0.8, label = "RC limit (to baseline)")
-				ax0.axvline(SAMPLING*rcSEarly, color = f'{colors[ich]}', linestyle = "-.", alpha = 0.8)
+					ax0.plot(x, BaselineRestoration(wfm = wfm-blines.get("v"), tau = 2900, width = SAMPLING)+blines.get('v')\
+						, f'--{colors[ich]}', alpha = 0.8, label = f"rc ch {ich}")
+					ax0.axvline(SAMPLING*rcLate, ymax = 0.5, ymin = 0, color = f'{colors[ich]}', linestyle = "--", alpha = 1, label = "RC fixed")
+					ax0.axvline(SAMPLING*rcEarly, ymax = 0.5, ymin = 0, color = f'{colors[ich]}',linestyle = "--", alpha = 1)
+					
+					ax0.axvline(SAMPLING*rcSEarly, ymax = .5, ymin = 0, color = f'{colors[ich]}', linestyle = "dotted", alpha = 1)
+					ax0.axvline(SAMPLING*(rcSLate), ymax = 0.5, ymin = 0, color = f'{colors[ich]}', linestyle = "dotted", alpha = 1, label = "RC flat")
 
 		#### done channel loop
 		
@@ -223,11 +309,14 @@ if __name__ == "__main__":
 		##### plotting event level #####
 		if args.live == True:
 			print("event time %i" % evtime)
+			print("blineV", tt_blineV)
+			print("blineE", tt_blineE)
 			print("fixed charge", tt_qFixed)
 			print("flat charge", tt_qFlat)
 			print("tt_qRCFixed", tt_qRCFixed)
 			print("tt_qRCFlat", tt_qRCFlat)
 			print("tt_min", tt_min)
+			print("tt_xMin", tt_xMin)
 
 			plt.pause(0.05)
 			ax0.minorticks_on()
@@ -247,7 +336,13 @@ if __name__ == "__main__":
 	tt.Write()
 	hFile.Close()
 
-	print("Wrote output to", outName)
+	print(f"\nDone analysis on {Nevents} Events!\n from run:", fname, "\n")
+
+	print("Wrote output to\n", outName, "\n")
+
+	print(f"% Empty = {100*Nmissing/Nevents/nchans:0.3f}", end = "\n")
+	print(f"% Saturated = {100*NSaturated/Nevents/nchans:0.3f}", end = "\n")
+	print(f"% Early = {100*Nearly/Nevents/nchans:0.3f}", end = "\n")
 
 
 
