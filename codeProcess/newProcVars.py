@@ -1,5 +1,3 @@
-#!/usr/local/bin/python3.11
-
 """
 	use this for viewing waveforms. Minimal processing done here. good 'skeleton' for viewing data
 """
@@ -95,7 +93,7 @@ BLINEEND = 500.
 NULLVAL = 0.0
 SKIPENDTIME = 500.
 defRun = 202205271113
-defDir = "2022/05"
+defDir = "2022/02"
 # defDir = "caenTesting"
 
 
@@ -120,7 +118,7 @@ if __name__ == "__main__":
 	
 	# files and paths
 	raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawData/"+args.inDir
-	savePath = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/"+args.outDir
+	savePath = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/"+args.outDir+"/"
 	if not os.path.exists(savePath):
 		print("savePath doesn't exist")
 		print(savePath)
@@ -135,13 +133,13 @@ if __name__ == "__main__":
 	if args.outName != None:
 		outName = str(savePath + "npv1_"+ args.outName + "_" + fname + ".root")
 	
-	if args.live == True or (args.N > 0 and args.N < 1000): # avoid overwriting big files, if user is viewing/testing
+	if args.live == True or (args.N > 0 and args.N < 900): # avoid overwriting big files, if user is viewing/testing
 		outName = savePath + "LIVE_npv1_" + str(args.run) + ".root"
 
 	hFile = gROOT.FindObject(outName)
 	if hFile:
 		hFile.Close()
-	hFile = TFile(outName, 'RECREATE', 'bprocStaticVars1.py output file')
+	hFile = TFile(outName, 'RECREATE')
 	print("writing ROOT file to: ", outName, "\n")
 	
 	### defining TTree and all variables ###
