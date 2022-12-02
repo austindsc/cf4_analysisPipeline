@@ -1,4 +1,4 @@
-#!/usr/local/bin/python3.9
+#!/usr/local/bin/python3.11
 
 """
 	use this for viewing waveforms. Minimal processing done here. good 'skeleton' for viewing data
@@ -13,7 +13,7 @@ from array import array
 import sys
 from time import sleep
 
-from sympy import false
+# from sympy import false
 sys.path.append('..')
 from SBCcode.DataHandling import ReadBinary as rb
 
@@ -95,7 +95,7 @@ BLINEEND = 500.
 NULLVAL = 0.0
 SKIPENDTIME = 500.
 defRun = 202205271113
-defDir = ""
+defDir = "2022/05"
 # defDir = "caenTesting"
 
 
@@ -104,10 +104,11 @@ if __name__ == "__main__":
 	pars.add_argument("--start", type = int, required = False, default = 0, help = "what event to start in")
 	pars.add_argument("--N", type = int, required = False, default = -1, help = "N events to plot/analyze. default -1 runs all")
 	pars.add_argument("--run", type = str, required = False, default = defRun, help = "desired run number")
+	pars.add_argument("--inDir", type = str, required = False, default = defDir, help = "path from rawData to look for run")
 
 	pars.add_argument("--live", type = bool, required = False, default = False, action=argparse.BooleanOptionalAction, help = "do viewing with user input")
 	pars.add_argument("--caen", type = bool, required = False, default = True, help = "is this new data (on caen)")
-	pars.add_argument("--outDir", type = str, required = False, default = defDir, help = "name of ouptut directory in main directory")
+	pars.add_argument("--outDir", type = str, required = False, default = "", help = "name of ouptut directory in main directory")
 	pars.add_argument("--outName", type = str, required = False, help = "if custom naming of output file is desired, input name here (without .root suffix)")
 	
 	## for old data type (non CAEN)
@@ -118,7 +119,7 @@ if __name__ == "__main__":
 	args=pars.parse_args()
 	
 	# files and paths
-	raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawData/caen"
+	raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawData/"+args.inDir
 	savePath = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/"+args.outDir
 	if not os.path.exists(savePath):
 		print("savePath doesn't exist")

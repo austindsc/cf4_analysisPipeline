@@ -10,7 +10,7 @@ def run_process(command):
 def getFileList(path):
 	
 
-cA = "python3 ../codeProcess/procStaticVars1.py --N 50000 --outName 50koutProcStatic2_ "
+cA = "p311 ../codeProcess/newProcVars.py --N 50000 --outName  "
 
 runList = ["20210723_5", "20210812_2"]
 
