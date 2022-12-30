@@ -5,7 +5,7 @@ from array import array
 import ROOT
 from ROOT import TFile, TTree
 
-defOpen = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/npv1_202205271113.root"
+defOpen = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/npv1_202203101333.root"
 
 file = ROOT.TFile.Open(defOpen, "READ")
 
