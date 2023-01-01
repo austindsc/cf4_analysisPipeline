@@ -1,4 +1,3 @@
-
 import os
 import numpy as np
 from array import array
@@ -21,11 +20,12 @@ QVAR_USE = "qRCFlat"
 PECUTVALUE = 0.5
 
 ## crappy run organization
-runID_cs_bkg_bare = "202203101245"
+runID_cs_bkg_bare = "202203101333"
 runID_cs_mid_bare = "202203101306"
 
 runID_cs_bkg_lp = "202204111434"
-runID_cs_mid_lp = "202204111454"
+runID_cs_mid_lp = "202204111520"
+
 
 ## Actual function
 if __name__ == '__main__':
@@ -67,35 +67,30 @@ if __name__ == '__main__':
   for rc in rcList:
     rc.print()
 
-##xx finish print function. check all working. then check all SPE are good. then sanity checks.
-
   ########### Sanity Checks ###########
   ## peak time 
 
-  ## 
-
   ########### Building full PE histograms ###########
 
-  hNPE_csBkg_bare = TH1F("hNPE_bkg_bare", "hNPE_bkg_bare", 100, 0, 100)
+  hNPE_csBkg_bare = TH1F("hNPE_bkg_bare", "hNPE_bkg_bare", 500, 0, 100)
   hNPE_csMid_bare = hNPE_csBkg_bare.Clone("hNPE_csMid_bare")
   hNPE_csMid_bare.Reset()
 
   start = time.time()
 
-  build_SPEFixed_histogram(rc = rc_cs_bkg_bare, varName=QVAR_USE, histRef = hNPE_csBkg_bare)
-  build_SPEFixed_histogram(rc = rc_cs_mid_bare, varName=QVAR_USE, histRef = hNPE_csMid_bare)
+  build_SPEFixed_histogram(rc = rc_cs_bkg_bare, varName=QVAR_USE, histRef = hNPE_csBkg_bare, peCut = PECUTVALUE)
+  build_SPEFixed_histogram(rc = rc_cs_mid_bare, varName=QVAR_USE, histRef = hNPE_csMid_bare, peCut = PECUTVALUE)
   
   end = time.time()
   print ("Time elapsed:", end - start)
   
-
   ########### Plotting ###########
   c1 = TCanvas()
 
-  hNPE_csBkg_bare.Scale(1./hNPE_csBkg_bare.GetEntries())
+  hNPE_csBkg_bare.Scale(1./rc_cs_bkg_bare.GetRunTime())
   hNPE_csBkg_bare.Draw("hist")
 
-  hNPE_csMid_bare.Scale(1./hNPE_csMid_bare.GetEntries())
+  hNPE_csMid_bare.Scale(1./rc_cs_mid_bare.GetRunTime())
   hNPE_csMid_bare.SetLineColor(2)
   hNPE_csMid_bare.Draw("hist same")
 
