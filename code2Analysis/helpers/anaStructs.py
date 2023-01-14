@@ -8,6 +8,14 @@ def getDate(runID:str):
 	return runID[4:4+4]
 
 ## ---------------------------------------------------------------- ##
+class PhysicsInstance:
+  def __init__(self):
+    return
+
+  
+
+
+## ---------------------------------------------------------------- ##
 class RunClass:
 
   def __init__(self, run, ttree, nChan = 3):

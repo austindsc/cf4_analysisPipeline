@@ -22,6 +22,7 @@ VERBOSE = False
 QVAR_USE = "qRCFlat"
 PECUTVALUE = 0.5
 
+## Paths to files, runLists
 defPath = str(os.environ["CF4HOME"])+"/procData/" # where to get everything
 bkgRunPath = "runLists/analysis1/bkgLists/"       # bkg run list files
 
@@ -65,63 +66,93 @@ if __name__ == '__main__':
     
     rcList.append(rcObj)
 
-  # rc_cs_bkg_bare.print()
+  # printing information
   rcList[0].tt.Show(0)
   for rc in rcList:
     rc.print()
 
   ## Got all files ##
-  pickRCevent = lambda runID, rcList: [rc for rc in rcList if rc.id == runID][0]
-  pickRCfromList = lambda runID_list, rcList: [rc for rc in rcList if runID_list.count(rc.id) == 1]
+  pickRCevent = lambda runID, rcList: [rc for rc in rcList if rc.id == runID][0] # give one rc event
+  pickRCfromList = lambda runID_list, rcList: [rc for rc in rcList if runID_list.count(rc.id) == 1] #select many rc events
 
   ########### Sanity Checks ###########
   ## peak time 
 
 
   ######## Building Full Spectra ########
-  rcBkg_0310 = pickRCfromList(bkgList_0310, rcList)
-  hNPE_bkg_0310 = TH1F("hNPE_bkg_0310", "hNPE_bkg_0310", 500, 0, 100)
-  build_bkgHistogram(rcBkg_0310, QVAR_USE, hNPE_bkg_0310, PECUTVALUE)
+
+  ## 0310 data - Bare SiPM ##
+  rcBkg_0310 = pickRCfromList(bkgList_0310, rcList) # get all RC background objects
+  hNPE_bkg_0310 = TH1F("hNPE_bkg_0310", "hNPE_bkg_0310", 500, 0, 100) # histogram
+  build_bkgHistogram(rcBkg_0310, QVAR_USE, hNPE_bkg_0310, PECUTVALUE) # this calls build_SPEFixedHistogram iteratively, does rate calculation...
   
-  rc_cs_mid_bare = pickRCevent(runID_cs_mid_bare, rcList)
+  rc_cs_mid_bare = pickRCevent(runID_cs_mid_bare, rcList) # physics run
   hNPE_cs_mid_bare = hNPE_bkg_0310.Clone("hNPE_cs_mid_bare")
   hNPE_cs_mid_bare.Reset()
   build_SPEFixed_histogram(rc_cs_mid_bare, QVAR_USE, hNPE_cs_mid_bare, PECUTVALUE)
-  print(hNPE_cs_mid_bare.GetBinContent(50))
-  hNPE_cs_mid_bare.Scale(1./rc_cs_mid_bare.GetRunTime())
-  print(hNPE_cs_mid_bare.GetBinContent(50))
+  hNPE_cs_mid_bare.Scale(1./rc_cs_mid_bare.GetRunTime()) # rate scaling
 
-  # rcBkg_0411 = pickRCfromList(bkgList_0411, rcList)
-  # hNPE_bkg_0411 = TH1F("hNPE_bkg_0411", "hNPE_bkg_0310", 500, 0, 100)
-  # build_bkgHistogram(rcBkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE)
+  # bkg subtracted
+  hNPE_cs_mid_bare_corrected = hNPE_cs_mid_bare.Clone("hNPE_cs_mid_bare_corrected")
+  hNPE_cs_mid_bare_corrected.Add(hNPE_bkg_0310, -1.) # doing subtraction
+
+  # test = PhysicsInstance()
+  # test.mDate = "0310"
+  # test.mBkgHist = hNPE_bkg_0310
+
+  ## 0411 data - LP covered SiPM ##
+  # repeat what is done above
+  rcBkg_0411 = pickRCfromList(bkgList_0411, rcList)
+  hNPE_bkg_0411 = hNPE_bkg_0310.Clone("hNPE_bkg_0411")
+  hNPE_bkg_0411.Reset()
+  build_bkgHistogram(rcBkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE)
+
+  rc_cs_mid_LP = pickRCevent(runID_cs_mid_lp, rcList) # physics run
+  hNPE_cs_mid_LP = hNPE_bkg_0310.Clone("hNPE_cs_mid_LP")
+  hNPE_cs_mid_LP.Reset()
+  build_SPEFixed_histogram(rc_cs_mid_LP, QVAR_USE, hNPE_cs_mid_LP, PECUTVALUE)
+  hNPE_cs_mid_LP.Scale(1./rc_cs_mid_LP.GetRunTime()) 
+
+  hNPE_cs_mid_LP_corrected = hNPE_cs_mid_LP.Clone("hNPE_cs_mid_LP_corrected")
+  hNPE_cs_mid_LP_corrected.Add(hNPE_bkg_0411, -1.)
+
   
   ########### Plotting ###########
+  
+  ## Raw Spectra
   c1 = TCanvas()
+  c1.Divide(1, 2)
+
+  c1.cd(1) # Bare data
+  c1.cd(1).SetLogy()
 
   hNPE_bkg_0310.Draw("hist")
 
   hNPE_cs_mid_bare.SetLineColor(2)
   hNPE_cs_mid_bare.Draw("hist same")
 
-  hNPE_cs_mid_bare_corrected = hNPE_cs_mid_bare.Clone("hNPE_cs_mid_bare_corrected")
-  hNPE_cs_mid_bare_corrected.Add(hNPE_bkg_0310, -1.)
-  # hNPE_cs_mid_bare_corrected.Reset()
-  # hNPE_cs_mid_bare_corrected.Add(hNPE_cs_mid_bare, hNPE_bkg_0310, 1., -1.)
-  
   hNPE_cs_mid_bare_corrected.SetLineColor(3)
+  hNPE_cs_mid_bare_corrected.SetLineWidth(4)
   hNPE_cs_mid_bare_corrected.Draw("hist same")
 
-  print(
-    hNPE_bkg_0310.GetBinContent(50),
-    hNPE_cs_mid_bare.GetBinContent(50),
-    hNPE_cs_mid_bare_corrected.GetBinContent(50),
-    sep = "\n")
+  c1.cd(2) # LP data
+  c1.cd(2).SetLogy()
 
-  # hNPE_bkg_0411.SetLineColor(2)
-  # hNPE_bkg_0411.Draw("hist same")
+  hNPE_bkg_0411.Draw("hist")
 
-  c1.SetLogy()
+  hNPE_cs_mid_LP.SetLineColor(2)
+  hNPE_cs_mid_LP.Draw("hist same")
+
+  hNPE_cs_mid_LP_corrected.SetLineColor(3)
+  hNPE_cs_mid_LP_corrected.SetLineWidth(4)
+  hNPE_cs_mid_LP_corrected.Draw("hist same")
+  
   c1.Update()
+
+  ## signal data
+  # c2 = TCanvas()
+
+  # c2.Update()
 
 
   # ROOT.gApplication.Run()
