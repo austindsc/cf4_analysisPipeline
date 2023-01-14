@@ -27,6 +27,8 @@ from ROOT import TSpectrum, TVectorD
 from ROOT import TMath, TFormula
 from ROOT import gROOT
 
+## must run with python 3.9 for multiprocessing to work ##
+
 def on_press(event):
 	# print('press', event.key)
 	if event.key == 'x' or event.key == 'q' or event.key == 'escape':
@@ -93,7 +95,7 @@ BLINEEND = 500.
 NULLVAL = 0.0
 SKIPENDTIME = 500.
 defRun = 202205271113
-defDir = "2022/02"
+defDir = "2022/05"
 # defDir = "caenTesting"
 
 
@@ -136,11 +138,8 @@ if __name__ == "__main__":
 	if args.live == True or (args.N > 0 and args.N < 900): # avoid overwriting big files, if user is viewing/testing
 		outName = savePath + "LIVE_npv1_" + str(args.run) + ".root"
 
-	hFile = gROOT.FindObject(outName)
-	if hFile:
-		hFile.Close()
-	hFile = TFile(outName, 'RECREATE')
-	print("writing ROOT file to: ", outName, "\n")
+
+	### Used to open root file here
 	
 	### defining TTree and all variables ###
 	tt = TTree("tt", "proc static variables, run:" + str(args.run))
@@ -198,8 +197,9 @@ if __name__ == "__main__":
 	data = rb.ReadBlock(path)
 	traces = data.get("sipm_traces") # [event][channel][waveform value]
 	times = data.get("time_stamp")
+	# print("maxTime = ", max(times))
 	# for key, value in data.items(): # inspecting output
-	# 	print(key)
+	# 	print(key, value)
 	# print(traces.shape)
 	# print(traces[0][0])
 
@@ -330,6 +330,17 @@ if __name__ == "__main__":
 			ax0.clear()
 
 
+	# hFile = gROOT.FindObject(outName)
+	# if hFile:
+	# 	hFile.Close()
+
+	# with TFile(outName, "RECREATE") as hFile:  
+	# 	# h = ROOT.TH1F()  
+	# 	# hFile.cd()
+	# 	tt.Write()
+	# 	print("writing ROOT file to: ", outName, "\n")
+	
+	hFile = TFile(outName, 'RECREATE')
 	#### Closing and Writing #####
 	hFile.cd()
 	tt.Write()

@@ -1,43 +1,58 @@
+## Python Stuff
 import os
 import numpy as np
 from array import array
 import copy
 import time
 
+## ROOT stuff
 import ROOT
 from ROOT import TFile, TTree, TCanvas
 from ROOT import TH1F
 
-# Atown's stuff
+## Atown's stuff
 from helpers.anaStructs import *
 from helpers.getSPE import *
 from helpers.graphBuilders import *
 
-## USER INPUTS
+## ------------- Input ------------- ##
+## USER INPUTS (kinda bad ngl) ##
 NCHAN = 3
 VERBOSE = False
 QVAR_USE = "qRCFlat"
 PECUTVALUE = 0.5
 
-## crappy run organization
-runID_cs_bkg_bare = "202203101333"
+defPath = str(os.environ["CF4HOME"])+"/procData/" # where to get everything
+bkgRunPath = "runLists/analysis1/bkgLists/"       # bkg run list files
+
+# physics runs
 runID_cs_mid_bare = "202203101306"
-
-runID_cs_bkg_lp = "202204111434"
 runID_cs_mid_lp = "202204111520"
+physicsList = [runID_cs_mid_bare, runID_cs_mid_lp]
 
+# bkg runs
+bkgList_0310 = np.loadtxt(defPath + bkgRunPath+ "date_0310-48V.txt", dtype=str).tolist()
+bkgList_0411 = np.loadtxt(defPath + bkgRunPath+ "date_0411-48V.txt", dtype=str).tolist()
+# runList = np.loadtxt(defPath+ "runLists/analysis1/" + "csList_noBkg.txt", dtype=str)
+
+# final inputs into code
+allBkgs = bkgList_0310 + bkgList_0411
+allRuns = allBkgs + physicsList
+
+## ------------- Done ------------- ##
+
+"""Ideas (put in Notion)
+# shoot muons down into detector in G4
+# Ask patrick about accurary of isotropic from plane above"""
 
 ## Actual function
 if __name__ == '__main__':
-
-  defPath = str(os.environ["CF4HOME"])+"/procData/"
-  runList = np.loadtxt(defPath+ "runLists/analysis1/" + "csList.txt", dtype=str)
 
   rcList = []
   fList = []
 
   # loading data and SPE analysis
-  for run in runList:
+  for run in allRuns:
     f = ROOT.TFile(defPath + "analysis1/npv1_" + run + ".root", "READ") #file opens
     fList.append(f) # NEED THIS to keep ttrees persistent (all reference in Python)
 
@@ -45,54 +60,65 @@ if __name__ == '__main__':
     rcObj = RunClass(run, tt)
 
     for ich in range(NCHAN):
-      tempSpe = getSPEVval(rcObj.tt, width = 15, verbose = VERBOSE, varName = QVAR_USE, channel = ich, runName = run)
+      tempSpe = getSPEVval2(rcObj.tt, width = 15, verbose = VERBOSE, varName = QVAR_USE, channel = ich, runName = run)
       rcObj.getChan(ich).addSpe(tempSpe) 
     
     rcList.append(rcObj)
 
-  ## Got all files ##
-  pickRCevent = lambda runID: [rc for rc in rcList if rc.id == runID][0]
-  rc_cs_bkg_bare = pickRCevent(runID_cs_bkg_lp) #bad way to do search
-  rc_cs_mid_bare = pickRCevent(runID_cs_mid_lp)
-  
-  rc_cs_bkg_bare.tt.Show(0)
-
-  # bline = np.empty((3), dtype = "float32")
-  # rc_cs_bkg_bare.tt.SetBranchAddress("blineV", bline)
-  # for i in range(0, 10):
-  #   rc_cs_bkg_bare.tt.GetEntry(i)
-  #   print(bline)
-
   # rc_cs_bkg_bare.print()
+  rcList[0].tt.Show(0)
   for rc in rcList:
     rc.print()
+
+  ## Got all files ##
+  pickRCevent = lambda runID, rcList: [rc for rc in rcList if rc.id == runID][0]
+  pickRCfromList = lambda runID_list, rcList: [rc for rc in rcList if runID_list.count(rc.id) == 1]
 
   ########### Sanity Checks ###########
   ## peak time 
 
-  ########### Building full PE histograms ###########
 
-  hNPE_csBkg_bare = TH1F("hNPE_bkg_bare", "hNPE_bkg_bare", 500, 0, 100)
-  hNPE_csMid_bare = hNPE_csBkg_bare.Clone("hNPE_csMid_bare")
-  hNPE_csMid_bare.Reset()
-
-  start = time.time()
-
-  build_SPEFixed_histogram(rc = rc_cs_bkg_bare, varName=QVAR_USE, histRef = hNPE_csBkg_bare, peCut = PECUTVALUE)
-  build_SPEFixed_histogram(rc = rc_cs_mid_bare, varName=QVAR_USE, histRef = hNPE_csMid_bare, peCut = PECUTVALUE)
+  ######## Building Full Spectra ########
+  rcBkg_0310 = pickRCfromList(bkgList_0310, rcList)
+  hNPE_bkg_0310 = TH1F("hNPE_bkg_0310", "hNPE_bkg_0310", 500, 0, 100)
+  build_bkgHistogram(rcBkg_0310, QVAR_USE, hNPE_bkg_0310, PECUTVALUE)
   
-  end = time.time()
-  print ("Time elapsed:", end - start)
+  rc_cs_mid_bare = pickRCevent(runID_cs_mid_bare, rcList)
+  hNPE_cs_mid_bare = hNPE_bkg_0310.Clone("hNPE_cs_mid_bare")
+  hNPE_cs_mid_bare.Reset()
+  build_SPEFixed_histogram(rc_cs_mid_bare, QVAR_USE, hNPE_cs_mid_bare, PECUTVALUE)
+  print(hNPE_cs_mid_bare.GetBinContent(50))
+  hNPE_cs_mid_bare.Scale(1./rc_cs_mid_bare.GetRunTime())
+  print(hNPE_cs_mid_bare.GetBinContent(50))
+
+  # rcBkg_0411 = pickRCfromList(bkgList_0411, rcList)
+  # hNPE_bkg_0411 = TH1F("hNPE_bkg_0411", "hNPE_bkg_0310", 500, 0, 100)
+  # build_bkgHistogram(rcBkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE)
   
   ########### Plotting ###########
   c1 = TCanvas()
 
-  hNPE_csBkg_bare.Scale(1./rc_cs_bkg_bare.GetRunTime())
-  hNPE_csBkg_bare.Draw("hist")
+  hNPE_bkg_0310.Draw("hist")
 
-  hNPE_csMid_bare.Scale(1./rc_cs_mid_bare.GetRunTime())
-  hNPE_csMid_bare.SetLineColor(2)
-  hNPE_csMid_bare.Draw("hist same")
+  hNPE_cs_mid_bare.SetLineColor(2)
+  hNPE_cs_mid_bare.Draw("hist same")
+
+  hNPE_cs_mid_bare_corrected = hNPE_cs_mid_bare.Clone("hNPE_cs_mid_bare_corrected")
+  hNPE_cs_mid_bare_corrected.Add(hNPE_bkg_0310, -1.)
+  # hNPE_cs_mid_bare_corrected.Reset()
+  # hNPE_cs_mid_bare_corrected.Add(hNPE_cs_mid_bare, hNPE_bkg_0310, 1., -1.)
+  
+  hNPE_cs_mid_bare_corrected.SetLineColor(3)
+  hNPE_cs_mid_bare_corrected.Draw("hist same")
+
+  print(
+    hNPE_bkg_0310.GetBinContent(50),
+    hNPE_cs_mid_bare.GetBinContent(50),
+    hNPE_cs_mid_bare_corrected.GetBinContent(50),
+    sep = "\n")
+
+  # hNPE_bkg_0411.SetLineColor(2)
+  # hNPE_bkg_0411.Draw("hist same")
 
   c1.SetLogy()
   c1.Update()

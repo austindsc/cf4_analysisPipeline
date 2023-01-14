@@ -4,6 +4,9 @@ import numpy as np
 
 #add voltage to RunClass object
 
+def getDate(runID:str):
+	return runID[4:4+4]
+
 ## ---------------------------------------------------------------- ##
 class RunClass:
 
@@ -11,6 +14,7 @@ class RunClass:
     self.id = str(run) #run ID (from integer)
     self.tt = ttree
     self.label=""
+    self.date = getDate(run)
     self.mChannels = [Channel(i) for i in range(nChan)]
     return
   
@@ -40,8 +44,8 @@ class RunClass:
           rollOver += 1
         lastTime = int(evTime[0])
       
-      # total time in 16ns bins = current time + number of rollovers*2^31
-      self.mRunTime = 16*1e-9*(lastTime  + fullCount * rollOver) #units of seconds
+      # total time in 8ns bins = current time + number of rollovers*2^31
+      self.mRunTime = 8*1e-9*(lastTime  + fullCount * rollOver) #units of seconds
     return self.mRunTime
 
   def print(self):

@@ -5,6 +5,10 @@ import numpy as np
 
 from multiprocessing import Pool
 
+# NRUN = 1000
+defRunList = "/procData/runLists/analysis1/bkgLists/date_0411-48V.txt"
+outDir = "/analysis1_bkg/"
+
 def run_process(command):
 	subprocess.run(command, shell = True)
 	return
@@ -12,15 +16,12 @@ def run_process(command):
 def getMonth(runID):
 	return runID[4:4+2]
 
-defRunList = "ana1.txt"
-outDir = "/analysis1/"
-
 if __name__ == '__main__':
 	pp = str(os.environ["CF4HOME"])
 
 	cA = f"python3 {pp}/codeProcess/newProcVars.py"
 
-	runList = np.loadtxt(pp+ "/procData/runLists/" + defRunList, dtype=str)
+	runList = np.loadtxt(pp + defRunList, dtype=str)
 
 	## First check all files exist ##
 	allPaths = ["/".join([pp, "rawData", "2022", getMonth(r), r+".bin"]) for r in runList]
@@ -37,13 +38,14 @@ if __name__ == '__main__':
 	else:
 		print("all files exist in", defRunList, "\n\n")
 
+	# exit(0)
 	processes = []
 	iProcs = 4
-
+	# exit(0) # actually run!
 	for irun, run in enumerate(runList, start = 1):
 		inDir = "/".join(["2022", getMonth(run)])
 		
-		command = str(cA + " --inDir " + inDir + " --run " + str(run) + " --outDir " + outDir +  " --N 100000 ")
+		command = str(cA + " --inDir " + inDir + " --run " + str(run) + " --outDir " + outDir)
 		processes.append(command)
 		print(command)
 		print(irun)
