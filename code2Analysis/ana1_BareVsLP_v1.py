@@ -28,7 +28,7 @@ bkgRunPath = "runLists/analysis1/bkgLists/"       # bkg run list files
 
 # physics runs
 runID_cs_mid_bare = "202203101306"
-runID_cs_mid_lp = "202204111520"
+runID_cs_mid_lp = "202204111454"
 physicsList = [runID_cs_mid_bare, runID_cs_mid_lp]
 
 # bkg runs
@@ -81,6 +81,8 @@ if __name__ == '__main__':
 
   ######## Building Full Spectra ########
 
+  hReference = TH1F("hReference", "hReference", 500, 0, 100) # histogram
+
   ## 0310 data - Bare SiPM ##
   rcBkg_0310 = pickRCfromList(bkgList_0310, rcList) # get all RC background objects
   hNPE_bkg_0310 = TH1F("hNPE_bkg_0310", "hNPE_bkg_0310", 500, 0, 100) # histogram
@@ -104,12 +106,12 @@ if __name__ == '__main__':
   # repeat what is done above
   rcBkg_0411 = pickRCfromList(bkgList_0411, rcList)
   hNPE_bkg_0411 = hNPE_bkg_0310.Clone("hNPE_bkg_0411")
-  hNPE_bkg_0411.Reset()
+  myHistReset(hNPE_bkg_0411)
   build_bkgHistogram(rcBkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE)
 
   rc_cs_mid_LP = pickRCevent(runID_cs_mid_lp, rcList) # physics run
   hNPE_cs_mid_LP = hNPE_bkg_0310.Clone("hNPE_cs_mid_LP")
-  hNPE_cs_mid_LP.Reset()
+  myHistReset(hNPE_cs_mid_LP)
   build_SPEFixed_histogram(rc_cs_mid_LP, QVAR_USE, hNPE_cs_mid_LP, PECUTVALUE)
   hNPE_cs_mid_LP.Scale(1./rc_cs_mid_LP.GetRunTime()) 
 
@@ -150,9 +152,31 @@ if __name__ == '__main__':
   c1.Update()
 
   ## signal data
-  # c2 = TCanvas()
 
-  # c2.Update()
+  c2 = TCanvas()
+
+  # hNPE_cs_mid_bare_corrected.Rebin(2)
+  # hNPE_cs_mid_LP_corrected.Rebin(2)
+
+
+  hNPE_cs_mid_bare_corrected.SetLineColor(2)
+  hNPE_cs_mid_bare_corrected.SetLineWidth(3)
+  hNPE_cs_mid_bare_corrected.Draw("hist")
+
+  hNPE_cs_mid_LP_corrected.SetLineColor(3)
+  hNPE_cs_mid_LP_corrected.SetLineWidth(3)
+  hNPE_cs_mid_LP_corrected.Draw("hist same")
+  
+  hNPE_cs_mid_bare_corrected.SetMaximum(1.1 * hNPE_cs_mid_LP_corrected.GetMaximum())
+  hNPE_cs_mid_bare_corrected.SetMinimum(0.9 * 1e-4)
+  hNPE_cs_mid_bare_corrected.GetXaxis().SetRangeUser(0, 20)
+
+  hNPE_cs_mid_bare_corrected.SetTitle("Bkg subtracted - Bare vs LP - Liquid CF4 - Cs source")
+  hNPE_cs_mid_bare_corrected.GetXaxis().SetTitle("PE")
+  hNPE_cs_mid_bare_corrected.GetYaxis().SetTitle("Rate (Hz / some PE width)")
+
+  c2.SetLogy()
+  c2.Update()
 
 
   # ROOT.gApplication.Run()

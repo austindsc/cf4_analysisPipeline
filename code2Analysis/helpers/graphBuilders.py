@@ -2,6 +2,11 @@ import numpy as np
 import ROOT
 from helpers.anaStructs import *
 
+def myHistReset(hist):
+  hist.Reset()
+  hist.SetTitle(hist.GetName())
+  return
+
 def build_SPEFixed_histogram(rc: RunClass, varName: str, histRef: ROOT.TH1, peCut = 0.5):
 
   for ev in rc.tt:
