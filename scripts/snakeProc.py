@@ -6,8 +6,11 @@ import numpy as np
 from multiprocessing import Pool
 
 # NRUN = 1000
-defRunList = "/procData/runLists/analysis1/bkgLists/date_0411-48V.txt"
-outDir = "/analysis1_bkg/"
+# defRunList = "/procData/runLists/analysis1/bkgLists/date_0411-48V.txt"
+# outDir = "/analysis1_bkg/"
+
+defRunList = "/procData/runLists/analysis1/CsList.txt"
+outDir = "/analysis1/"
 
 def run_process(command):
 	subprocess.run(command, shell = True)
@@ -21,7 +24,7 @@ if __name__ == '__main__':
 
 	cA = f"python3 {pp}/codeProcess/newProcVars.py"
 
-	runList = np.loadtxt(pp + defRunList, dtype=str)
+	runList = np.loadtxt(pp + defRunList, dtype=str, ndmin = 1)
 
 	## First check all files exist ##
 	allPaths = ["/".join([pp, "rawData", "2022", getMonth(r), r+".bin"]) for r in runList]

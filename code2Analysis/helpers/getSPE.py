@@ -2,8 +2,20 @@
 import ROOT
 import numpy as np
 from array import array
+# from helpers.anaStructs import SpeStuff
 
-from helpers.anaStructs import *
+## ---------------------------------------------------------------- ##
+class SpeStuff:
+
+  def __init__(self, spe = -1, speE = -1, chi2 = 0):
+    self.spe = spe
+    self.espe = speE
+    self.chi2 = chi2 # maximum value
+    return
+
+  def print(self):
+    print(f"spe = {self.spe:0.2f} +/- {self.espe:0.2f}     maxChi2 = {self.chi2:0.2f}")
+    return
 
 def getSPEVval2(tt, width = 10., verbose = False, varName = "qFixed", channel = 0, runName = ""):
 

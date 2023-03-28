@@ -1,29 +1,44 @@
 import copy
 import numpy as np
+import helpers.graphBuilders as GB
+from helpers.getSPE import SpeStuff
+import helpers.getSPE as GETSPE
 # add TF1 objects in here somewhere?
+
+## just some methods for sorting RC objects from global list
+class SORTING:
+  ## Got all files ##
+  # pickSingleRC = lambda runID, rcList: [rc for rc in rcList if rc.id == runID][0]
+  # get one rc event
+  def pickSingleRC(runID, rcList):
+    return [rc for rc in rcList if rc.id == runID][0]
+
+  # pickListRC = lambda runID_list, rcList: [rc for rc in rcList if runID_list.count(rc.id) == 1]
+  # select many rc events
+  def pickListOfRC(runID_list, rcList):
+    return  [rc for rc in rcList if runID_list.count(rc.id) == 1]
+
 
 #add voltage to RunClass object
 
-def getDate(runID:str):
-	return runID[4:4+4]
+def getDate(runID):
+	return str(runID)[4:4+4]
 
 ## ---------------------------------------------------------------- ##
 class PhysicsInstance:
   def __init__(self):
     return
 
-  
-
-
 ## ---------------------------------------------------------------- ##
 class RunClass:
 
   def __init__(self, run, ttree, nChan = 3):
-    self.id = str(run) #run ID (from integer)
+    self.id = run #run ID (from integer)
     self.tt = ttree
     self.label=""
     self.date = getDate(run)
     self.mChannels = [Channel(i) for i in range(nChan)]
+    self.mHeight = 0 #0 means background
     return
   
   def getChan(self, index):
@@ -60,9 +75,57 @@ class RunClass:
     print("\nrunID:", self.id)
     print("Nevents: %0.2f,   time: %0.2f min" % (self.tt.GetEntries(), self.GetRunTime() / 60))
     print("average Rate: %0.2f Hz" % (self.tt.GetEntries()/self.GetRunTime()))
+    if self.mHeight != 0:
+      print("height = %0.2f" % self.mHeight)
+
     for chan in self.mChannels:
       chan.print()
     return
+  
+  ## pick height from corresponding list of runs
+  def assign_height(self, runIDList:list, runHeightList:list):
+    if self.id in runIDList:
+      self.mHeight = runHeightList[runIDList.index(self.id)]
+    return
+
+  ## compute SPE for all channels
+  def computeSPE(self, width = 15, verbose = True, varname = "qRCFlat", channels = [0, 1, 2]):
+    for ich in channels:
+      tempSPE = GETSPE.getSPEVval2(self.tt, width, verbose, varname, ich, str(self.id))
+      self.getChan(ich).addSpe(tempSPE)
+    return
+
+  ## Getting and building NPE spectra
+  def getSpectrum(self):
+    if hasattr(self, 'mhSpectrum'):
+      return self.mhSpectrum
+    else:
+      print("rcObject" + self.id + " has no mhSpectrum")
+      return None
+
+  # if true, return PE vs rate spectrum
+  def buildSpectrum(self, histClone, varname = "qRCFlat", peCut = 0.5, rate = False):
+    self.mhSpectrum = histClone.Clone("hNPE_"+str(self.id))
+    GB.build_SPEFixed_histogram(self, varname, self.mhSpectrum, peCut)
+    if rate == True:
+      self.mhSpectrum.Scale(1./self.GetRunTime())
+    return self.mhSpectrum
+  
+  def getCorrSpectrum(self):
+    if hasattr(self, 'mhCorrSpectrum'):
+      return self.mhCorrSpectrum
+    else:
+      print("rcObject" + self.id + " has no mhCorrSpectrum")
+      return None
+
+  def buildCorrSpectrum(self, histBkg):
+    h = self.getSpectrum()
+    hCorr = h.Clone(h.GetName()+"_corrected")
+    hCorr.Add(histBkg, -1)
+    self.mhCorrSpectrum = hCorr
+    return hCorr
+  
+
 
 ## ---------------------------------------------------------------- ##
 class Channel:
@@ -80,15 +143,4 @@ class Channel:
     self.mSpe.print()
     return
 
-## ---------------------------------------------------------------- ##
-class SpeStuff:
-
-  def __init__(self, spe = -1, speE = -1, chi2 = 0):
-    self.spe = spe
-    self.espe = speE
-    self.chi2 = chi2 # maximum value
-    return
-
-  def print(self):
-    print(f"spe = {self.spe:0.2f} +/- {self.espe:0.2f}     maxChi2 = {self.chi2:0.2f}")
-    return
+## SPE STUFF is in 'getSPE.py' ##

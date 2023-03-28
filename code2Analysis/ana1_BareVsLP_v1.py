@@ -15,7 +15,7 @@ from helpers.anaStructs import *
 from helpers.getSPE import *
 from helpers.graphBuilders import *
 
-## ------------- Input ------------- ##
+## ------------- User Inputs ------------- ##
 ## USER INPUTS (kinda bad ngl) ##
 NCHAN = 3
 VERBOSE = False
@@ -27,24 +27,20 @@ defPath = str(os.environ["CF4HOME"])+"/procData/" # where to get everything
 bkgRunPath = "runLists/analysis1/bkgLists/"       # bkg run list files
 
 # physics runs
-runID_cs_mid_bare = "202203101306"
-runID_cs_mid_lp = "202204111454"
+runID_cs_mid_bare = 202203101306
+runID_cs_mid_lp = 202204111454
 physicsList = [runID_cs_mid_bare, runID_cs_mid_lp]
 
 # bkg runs
-bkgList_0310 = np.loadtxt(defPath + bkgRunPath+ "date_0310-48V.txt", dtype=str).tolist()
-bkgList_0411 = np.loadtxt(defPath + bkgRunPath+ "date_0411-48V.txt", dtype=str).tolist()
+bkgList_0310 = np.loadtxt(defPath + bkgRunPath+ "date_0310-48V.txt", dtype=int).tolist()
+bkgList_0411 = np.loadtxt(defPath + bkgRunPath+ "date_0411-48V.txt", dtype=int).tolist()
 # runList = np.loadtxt(defPath+ "runLists/analysis1/" + "csList_noBkg.txt", dtype=str)
 
 # final inputs into code
 allBkgs = bkgList_0310 + bkgList_0411
 allRuns = allBkgs + physicsList
 
-## ------------- Done ------------- ##
-
-"""Ideas (put in Notion)
-# shoot muons down into detector in G4
-# Ask patrick about accurary of isotropic from plane above"""
+## ------------- Done User input ------------- ##
 
 ## Actual function
 if __name__ == '__main__':
@@ -53,8 +49,9 @@ if __name__ == '__main__':
   fList = []
 
   # loading data and SPE analysis
+  # everything is in rcList
   for run in allRuns:
-    f = ROOT.TFile(defPath + "analysis1/npv1_" + run + ".root", "READ") #file opens
+    f = ROOT.TFile(defPath + "analysis1/npv1_" + str(run) + ".root", "READ") #file opens
     fList.append(f) # NEED THIS to keep ttrees persistent (all reference in Python)
 
     tt = f.Get("tt")
@@ -70,25 +67,21 @@ if __name__ == '__main__':
   rcList[0].tt.Show(0)
   for rc in rcList:
     rc.print()
-
-  ## Got all files ##
-  pickRCevent = lambda runID, rcList: [rc for rc in rcList if rc.id == runID][0] # give one rc event
-  pickRCfromList = lambda runID_list, rcList: [rc for rc in rcList if runID_list.count(rc.id) == 1] #select many rc events
-
+  
   ########### Sanity Checks ###########
   ## peak time 
+  # BORING
 
 
   ######## Building Full Spectra ########
-
   hReference = TH1F("hReference", "hReference", 500, 0, 100) # histogram
 
   ## 0310 data - Bare SiPM ##
-  rcBkg_0310 = pickRCfromList(bkgList_0310, rcList) # get all RC background objects
+  rcBkg_0310 = pickListOfRC(bkgList_0310, rcList) # get all RC background objects
   hNPE_bkg_0310 = TH1F("hNPE_bkg_0310", "hNPE_bkg_0310", 500, 0, 100) # histogram
   build_bkgHistogram(rcBkg_0310, QVAR_USE, hNPE_bkg_0310, PECUTVALUE) # this calls build_SPEFixedHistogram iteratively, does rate calculation...
   
-  rc_cs_mid_bare = pickRCevent(runID_cs_mid_bare, rcList) # physics run
+  rc_cs_mid_bare = pickSingleRC(runID_cs_mid_bare, rcList) # physics run
   hNPE_cs_mid_bare = hNPE_bkg_0310.Clone("hNPE_cs_mid_bare")
   hNPE_cs_mid_bare.Reset()
   build_SPEFixed_histogram(rc_cs_mid_bare, QVAR_USE, hNPE_cs_mid_bare, PECUTVALUE)
@@ -104,12 +97,13 @@ if __name__ == '__main__':
 
   ## 0411 data - LP covered SiPM ##
   # repeat what is done above
-  rcBkg_0411 = pickRCfromList(bkgList_0411, rcList)
+
+  rcBkg_0411 = pickListOfRC(bkgList_0411, rcList)
   hNPE_bkg_0411 = hNPE_bkg_0310.Clone("hNPE_bkg_0411")
   myHistReset(hNPE_bkg_0411)
   build_bkgHistogram(rcBkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE)
 
-  rc_cs_mid_LP = pickRCevent(runID_cs_mid_lp, rcList) # physics run
+  rc_cs_mid_LP = pickSingleRC(runID_cs_mid_lp, rcList) # physics run
   hNPE_cs_mid_LP = hNPE_bkg_0310.Clone("hNPE_cs_mid_LP")
   myHistReset(hNPE_cs_mid_LP)
   build_SPEFixed_histogram(rc_cs_mid_LP, QVAR_USE, hNPE_cs_mid_LP, PECUTVALUE)
@@ -118,11 +112,11 @@ if __name__ == '__main__':
   hNPE_cs_mid_LP_corrected = hNPE_cs_mid_LP.Clone("hNPE_cs_mid_LP_corrected")
   hNPE_cs_mid_LP_corrected.Add(hNPE_bkg_0411, -1.)
 
-  
   ########### Plotting ###########
   
   ## Raw Spectra
-  c1 = TCanvas()
+  c1 = TCanvas("yo")
+
   c1.Divide(1, 2)
 
   c1.cd(1) # Bare data
@@ -180,4 +174,4 @@ if __name__ == '__main__':
 
 
   # ROOT.gApplication.Run()
-  # pass
+  pass
