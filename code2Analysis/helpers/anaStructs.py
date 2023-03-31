@@ -24,6 +24,9 @@ class SORTING:
 def getDate(runID):
 	return str(runID)[4:4+4]
 
+def getEORtime(runID):
+  return str(runID)[-4:]
+
 ## ---------------------------------------------------------------- ##
 class PhysicsInstance:
   def __init__(self):
@@ -46,6 +49,21 @@ class RunClass:
 
   def GetSPE(self, index):
     return self.mChannels[index].mSpe.spe
+  
+  def GetRate(self):
+    if hasattr(self, 'mRate'):
+      return self.mRate
+    else:
+      self.mRate = self.tt.GetEntries()/self.GetRunTime()
+      self.mRateError = np.sqrt(self.tt.GetEntries())/self.GetRunTime()
+      return self.mRate
+  
+  def GetRateError(self):
+    return self.mRateError
+  
+  def GetEORtime(self):
+    # mins = getEORtime(self.runID)
+    return int(getEORtime(self.id))
 
   def GetRunTime(self): # returns in seconds
     if not hasattr(self, 'mRunTime'):
@@ -74,7 +92,7 @@ class RunClass:
   def print(self):
     print("\nrunID:", self.id)
     print("Nevents: %0.2f,   time: %0.2f min" % (self.tt.GetEntries(), self.GetRunTime() / 60))
-    print("average Rate: %0.2f Hz" % (self.tt.GetEntries()/self.GetRunTime()))
+    print("average Rate: %0.2f Hz" % self.GetRate())
     if self.mHeight != 0:
       print("height = %0.2f" % self.mHeight)
 
@@ -87,6 +105,12 @@ class RunClass:
     if self.id in runIDList:
       self.mHeight = runHeightList[runIDList.index(self.id)]
     return
+  
+  def GetHeight(self):
+    if hasattr(self, 'mHeight'):
+      return self.mHeight
+    print("no Height for rc", self.id)
+    return None
 
   ## compute SPE for all channels
   def computeSPE(self, width = 15, verbose = True, varname = "qRCFlat", channels = [0, 1, 2]):
@@ -103,22 +127,25 @@ class RunClass:
       print("rcObject" + self.id + " has no mhSpectrum")
       return None
 
-  # if true, return PE vs rate spectrum
-  def buildSpectrum(self, histClone, varname = "qRCFlat", peCut = 0.5, rate = False):
+  # if true, return PE vs rate spectrum (all channels summed)
+  def BuildSpectrum(self, histClone, varname = "qRCFlat", peCut = 0.5, rate = True):
     self.mhSpectrum = histClone.Clone("hNPE_"+str(self.id))
     GB.build_SPEFixed_histogram(self, varname, self.mhSpectrum, peCut)
     if rate == True:
       self.mhSpectrum.Scale(1./self.GetRunTime())
     return self.mhSpectrum
   
-  def getCorrSpectrum(self):
+  def GetSpectrum(self):
+    return self.mhSpectrum
+  
+  def GetCorrSpectrum(self):
     if hasattr(self, 'mhCorrSpectrum'):
       return self.mhCorrSpectrum
     else:
       print("rcObject" + self.id + " has no mhCorrSpectrum")
       return None
 
-  def buildCorrSpectrum(self, histBkg):
+  def BuildCorrSpectrum(self, histBkg):
     h = self.getSpectrum()
     hCorr = h.Clone(h.GetName()+"_corrected")
     hCorr.Add(histBkg, -1)

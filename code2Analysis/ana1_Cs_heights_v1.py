@@ -10,6 +10,8 @@ import ROOT
 from ROOT import TFile, TTree, TCanvas
 from ROOT import TH1F
 
+import matplotlib.pyplot as plt
+
 ## Atown's stuff
 from helpers.anaStructs import * # includes SORTING class/namespace
 from helpers.getSPE import *
@@ -63,6 +65,7 @@ if __name__ == '__main__':
     rcObj = RunClass(run, tt)
 
     rcObj.assign_height(runID_cs_bare_heights, cs_bare_heights)
+    rcObj.assign_height(runID_cs_LP_heights, cs_LP_heights)
 
     rcObj.computeSPE(width = 15, verbose=VERBOSE, varname=QVAR_USE, channels = [i for i in range(NCHAN)])
     rcList.append(rcObj)
@@ -84,57 +87,118 @@ if __name__ == '__main__':
   # BORING
 
   ######## Building Full Spectra ########
-  hReference = TH1F("hReference", "hReference", 500, 0, 100) # histogram
+  hReference = TH1F("hReference", "hReference", 500, 0, 50) # histogram
 
-  ## 0310 data - Bare SiPM ##
+  # building all SPE spectra
+  for rc in rcList:
+    rc.BuildSpectrum(hReference, QVAR_USE, PECUTVALUE, rate = True)
+
+  # building averaged bkg spectra
   hNPE_bkg_0310 = hReference.Clone("hNPE_bkg_0310") # histogram
-  GB.build_bkgHistogram(rcl_Bkg_0310, QVAR_USE, hNPE_bkg_0310, PECUTVALUE) # this calls build_SPEFixedHistogram iteratively, does rate calculation...
+  GB.build_bkgHistogramFast(rcl_Bkg_0310, QVAR_USE, hNPE_bkg_0310, PECUTVALUE) # this calls build_SPEFixedHistogram iteratively, does rate calculation...
+
+  hNPE_bkg_0411 = hReference.Clone("hNPE_bkg_0411") # histogram
+  GB.build_bkgHistogramFast(rcl_Bkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE) # this calls build_SPEFixedHistogram iteratively, does rate calculation...
   
-  for rc in rcl_cs_bare_heights:
-    h = rc.buildSpectrum(hReference, QVAR_USE, PECUTVALUE, rate = True)
-    rc.buildCorrSpectrum(hNPE_bkg_0310)
-
-  # rc_cs_mid_bare = pickSingleRC(runID_cs_mid_bare, rcList) # physics run
-  # hNPE_cs_mid_bare = hNPE_bkg_0310.Clone("hNPE_cs_mid_bare")
-  # hNPE_cs_mid_bare.Reset()
-  # build_SPEFixed_histogram(rc_cs_mid_bare, QVAR_USE, hNPE_cs_mid_bare, PECUTVALUE)
-  # hNPE_cs_mid_bare.Scale(1./rc_cs_mid_bare.GetRunTime()) # rate scaling
-
-  # # bkg subtracted
-  # hNPE_cs_mid_bare_corrected = hNPE_cs_mid_bare.Clone("hNPE_cs_mid_bare_corrected")
-  # hNPE_cs_mid_bare_corrected.Add(hNPE_bkg_0310, -1.) # doing subtraction
-
+  # for rc in rcl_cs_bare_heights:
+  #   rc.BuildCorrSpectrum(hNPE_bkg_0310)
+  
+  # for rc in rcl_cs_lp_heights:
+  #   rc.BuildCorrSpectrum(hNPE_bkg_0411)
   
   ########### Plotting ###########
   
   ## Raw Spectra
-  c1 = TCanvas()
+  # c1 = TCanvas()
   
-  hNPE_bkg_0310.Draw("hist E")
-  hNPE_bkg_0310.GetXaxis().SetRangeUser(0, 20)
+  # hNPE_bkg_0310.Draw("hist E")
+  # # hNPE_bkg_0310.GetXaxis().SetRangeUser(0, 20)
+  # rateBkg_0310 = hNPE_bkg_0310.Integral()
 
-  rcl_cs_bare_heights[1].getSpectrum().SetLineColor(2)
-  rcl_cs_bare_heights[1].getSpectrum().Draw("hist E same")
+  # rcl_cs_bare_heights[1].getSpectrum().SetLineColor(2)
+  # rcl_cs_bare_heights[1].getSpectrum().Draw("hist E same")
   
-  c1.SetLogy()
-  c1.Update()
+  # c1.SetLogy()
+  # c1.Update()
+
+  ## plotting all bkg spectra
+  c0 = TCanvas()
+  c0.Divide(1, 2)
+  c0.cd(1).SetLogy()
+
+  ROOT.gStyle.SetOptStat(0)
+
+  hReference.GetXaxis().SetRangeUser(0, 20)
+  hReference.Draw("hist")
+
+  for rc in rcl_Bkg_0310:
+    h = rc.GetSpectrum()
+    h.SetLineColor(rcl_Bkg_0310.index(rc)+1)
+    h.SetLineWidth(3)
+
+    h.Draw("hist same E")
+
+
+  c0.cd(2)
+  c0.cd(2).SetLogy()
+  hReference.Draw("hist")
+
+  for rc in rcl_Bkg_0411:
+    h = rc.GetSpectrum()
+    h.SetLineColor(rcl_Bkg_0411.index(rc)+1)
+    h.SetLineWidth(2)
+
+    h.Draw("hist same E")
+
+  c0.Update()
 
   #### corrected figs ####
-  c2 = TCanvas()
+  # c2 = TCanvas()
 
-  hReference.Draw("hist")
-  hReference.GetXaxis().SetRangeUser(0, 20.)
+  # hReference.Draw("hist")
+  # hReference.GetXaxis().SetRangeUser(0, 20.)
+  # leg = ROOT.TLegend()
+  # ROOT.gStyle.SetOptStat(0)
 
-  for rc in rcl_cs_bare_heights:
-    hCorr = rc.getCorrSpectrum()
+  # for rc in rcl_cs_bare_heights:
+  #   hCorr = rc.getCorrSpectrum()
 
-    hCorr.SetLineColor(rcl_cs_bare_heights.index(rc)+1)
+  #   hCorr.SetLineColor(rcl_cs_bare_heights.index(rc)+1)
 
-    hCorr.Draw("hist same E")
+  #   hCorr.Draw("hist same E")
+  #   leg.AddEntry(hCorr, str(rc.mHeight), "L")
 
-  c2.SetLogy()
-  c2.Update()
+  # leg.Draw("same")
+  # c2.SetLogy()
+  # c2.Update()
 
+
+  ## Matplotlib plotting ##
+  # xSourceHeight = np.array([rc.GetHeight() for rc in rcl_cs_bare_heights])
+  # xSource_EOR = np.array([rc.GetEORtime() for rc in rcl_cs_bare_heights])
+  # yFixedRate = np.array([rc.GetRate() for rc in rcl_cs_bare_heights])
+  # yFixedRateError = np.array([rc.GetRateError() for rc in rcl_cs_bare_heights])
+
+  # # heightLabels = np.array([rc.mHeight() for rc in rcl_cs_bare_heights])
+
+  # y0311_rate = np.array([rc.GetRate() for rc in rcl_Bkg_0310])
+  # y0311_rate_error = np.array([rc.GetRateError() for rc in rcl_Bkg_0310])
+  # x0311_fake = np.linspace(start = min(xSourceHeight), stop=max(xSourceHeight), num = len(rcl_Bkg_0310))
+  # x0311_EOR = np.array([rc.GetEORtime() for rc in rcl_Bkg_0310])
+
+  # fig, ax = plt.subplots(1, 1, figsize = (8, 4))
+  # ax.errorbar(x = xSourceHeight, y = yFixedRate, yerr = yFixedRateError)
+  # ax.errorbar(x0311_fake, y0311_rate, y0311_rate_error, marker = '.')
+  # fig.show()
+
+  # fig2, ax2 = plt.subplots(1, 1, figsize = (8, 4))
+  # ax2.set_xlabel('EOR time')
+  # ax2.errorbar(x = xSource_EOR, y = yFixedRate, yerr = yFixedRateError, linestyle = 'none')
+  # ax2.errorbar(x0311_EOR, y0311_rate, y0311_rate_error, marker = '.', linestyle = 'none')
+
+  # for i, height in enumerate(xSourceHeight):
+  #   ax2.annotate(height, (xSource_EOR[i], yFixedRate[i]))
+  # fig2.show()
 
   # ROOT.gApplication.Run()
   # pass

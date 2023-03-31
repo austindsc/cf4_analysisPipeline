@@ -24,19 +24,39 @@ def build_SPEFixed_histogram(rc, varName: str, histRef: ROOT.TH1, peCut = 0.5):
   print("done filling histogram:", histRef.GetName())
   return
 
+# simpler, just adds up already calculated spectra of RC objects
+def build_bkgHistogramFast(rcList:list, varName: str, histRef: ROOT.TH1, peCut = 0.5):
+  totalTime = 0.0
+  for rc in rcList:
+    if not hasattr(rc, 'mhSpectrum'):
+      print("called build_bkgHistogramFast without rc object having mhSpectrum")
+      exit(1)
+    # weighted average for correct addition
+    Noriginal = histRef.GetEntries()
+    Nnew = rc.mhSpectrum.GetEntries()
+    Ntot = Noriginal + Nnew
+    histRef.Add(histRef, rc.mhSpectrum, Noriginal/Ntot, Nnew/Ntot)
+    totalTime += rc.GetRunTime()
+
+  ## do rate scaling at end
+  print("done building fast bkg histogram for", histRef.GetName())
+  print("total time:", totalTime, "\n")
+  return
+
 # call build_SPEFixed.., adds them all together.
+# WRONG! N1 + N1 / t1 + t2 != N1/t1 + N1/t2
 def build_bkgHistogram(rcList:list, varName: str, histRef: ROOT.TH1, peCut = 0.5):
   
-  Nentries = 0
   totalTime = 0.
+  print("THIS FUNCTION 'build_bkgHistogram' IS WRONG")
+  exit(1)
 
   for rc in rcList:
     # rc.print()
-    htemp = histRef.Clone(histRef.GetName()+str(rc.id))
+    htemp = histRef.Clone(histRef.GetName()+"_time-"+(str(rc.id))[8:])
     htemp.Reset()
     build_SPEFixed_histogram(rc = rc, varName=varName, histRef = htemp, peCut = peCut)
     # htemp.Scale(1/rc.GetRunTime())
-    Nentries += htemp.GetEntries()
     totalTime += rc.GetRunTime()
 
     histRef.Add(histRef, htemp, 1., 1.)
@@ -44,5 +64,6 @@ def build_bkgHistogram(rcList:list, varName: str, histRef: ROOT.TH1, peCut = 0.5
 
   ## do rate scaling at end
   histRef.Scale(1./totalTime)
-  print("done building bkg histogram")
+  print("done building bkg histogram for", histRef.GetName())
+  print("total time:", totalTime, "\n")
   return
