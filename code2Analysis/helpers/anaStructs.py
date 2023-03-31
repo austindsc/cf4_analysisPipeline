@@ -44,7 +44,7 @@ class RunClass:
     self.mHeight = 0 #0 means background
     return
   
-  def getChan(self, index):
+  def GetChan(self, index):
     return self.mChannels[index]
 
   def GetSPE(self, index):
@@ -116,7 +116,7 @@ class RunClass:
   def computeSPE(self, width = 15, verbose = True, varname = "qRCFlat", channels = [0, 1, 2]):
     for ich in channels:
       tempSPE = GETSPE.getSPEVval2(self.tt, width, verbose, varname, ich, str(self.id))
-      self.getChan(ich).addSpe(tempSPE)
+      self.GetChan(ich).addSpe(tempSPE)
     return
 
   ## Getting and building NPE spectra

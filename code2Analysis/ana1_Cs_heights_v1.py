@@ -9,6 +9,8 @@ import time
 import ROOT
 from ROOT import TFile, TTree, TCanvas
 from ROOT import TH1F
+import ctypes
+import copy
 
 import matplotlib.pyplot as plt
 
@@ -21,10 +23,9 @@ import helpers.graphBuilders as GB
 ## USER INPUTS (kinda bad ngl) ##
 NCHAN = 3
 VERBOSE = False
-QVAR_USE = "qRCFlat"
+# QVAR_USE = "qRCFlat"
+QVAR_USE = "qFlat"
 PECUTVALUE = 0.5
-
-print("now here")
 
 ## Paths to files, runLists
 defPath = str(os.environ["CF4HOME"])+"/procData/" # where to get everything
@@ -87,7 +88,11 @@ if __name__ == '__main__':
   # BORING
 
   ######## Building Full Spectra ########
-  hReference = TH1F("hReference", "hReference", 500, 0, 50) # histogram
+  binHigh = 50.
+  Nbins = 500.
+  binWidth = (binHigh - 0.) / Nbins
+  hReference = TH1F("hReference", "hReference", int(Nbins), 0., binHigh) # histogram that everything is built off
+  hReference.Sumw2(True)
 
   # building all SPE spectra
   for rc in rcList:
@@ -100,6 +105,23 @@ if __name__ == '__main__':
   hNPE_bkg_0411 = hReference.Clone("hNPE_bkg_0411") # histogram
   GB.build_bkgHistogramFast(rcl_Bkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE) # this calls build_SPEFixedHistogram iteratively, does rate calculation...
   
+  ## Time between events for one run
+  # ignore rollover for now
+  hTimeBetweenEvents = TH1F("hTimeBetweenEvents", "hTimeBetweenEvents", 100, 0., 0.2)
+  evTime = np.array([0], dtype = "float32")
+  timeRC = rcl_Bkg_0310[0]
+  timeRC.tt.SetBranchAddress("evTime", evTime)
+  timeRC.tt.GetEntry(0)
+  lastTime = evTime[0]
+  for i in range(1, timeRC.tt.GetEntries()):
+    timeRC.tt.GetEntry(i)
+    newTime = evTime[0]
+    deltaTime = newTime-lastTime
+    if newTime < lastTime:
+      lastTime = newTime
+      continue
+    hTimeBetweenEvents.Fill(deltaTime)
+    lastTime = newTime
   # for rc in rcl_cs_bare_heights:
   #   rc.BuildCorrSpectrum(hNPE_bkg_0310)
   
@@ -172,8 +194,92 @@ if __name__ == '__main__':
   # c2.SetLogy()
   # c2.Update()
 
+  c3 = TCanvas()
+  hTimeBetweenEvents.Draw("hist")
+  c3.SetLogy()
+  c3.Update()
 
-  ## Matplotlib plotting ##
+
+  ################ Matplotlib plotting ################
+  plt.ion()
+
+  ### Bkg investigation ###
+
+  ## SPE size ##
+  ySPE_0310 = np.array([rc.GetSPE(0) for rc in rcl_Bkg_0310])
+  yeSPE_0310 = np.array([rc.GetChan(0).mSpe.espe for rc in rcl_Bkg_0310])
+  xEOR_0310 = np.array([rc.GetEORtime() for rc in rcl_Bkg_0310])
+
+  ySPE_0411 = np.array([rc.GetSPE(0) for rc in rcl_Bkg_0411])
+  yeSPE_0411 = np.array([rc.GetChan(0).mSpe.espe for rc in rcl_Bkg_0411])
+  xEOR_0411 = np.array([rc.GetEORtime() for rc in rcl_Bkg_0411])
+
+  ## TT rate ##
+  yTTrate_0310 = np.array([rc.GetRate() for rc in rcl_Bkg_0310])
+  yeTTrate_0310 = np.array([rc.mRateError for rc in rcl_Bkg_0310])
+
+  yTTrate_0411 = np.array([rc.GetRate() for rc in rcl_Bkg_0411])
+  yeTTrate_0411 = np.array([rc.mRateError for rc in rcl_Bkg_0411])
+
+  ## histogram full rate ##
+  yHistRate_0310 = np.array([rc.GetSpectrum().Integral() for rc in rcl_Bkg_0310])
+  yHistRate_0411 = np.array([rc.GetSpectrum().Integral() for rc in rcl_Bkg_0411])
+
+  ## 2PE and above rates ##
+  lowPE = 2.5
+  ey = ctypes.c_double()
+  yHistRate2_0310 = []
+  for rc in rcl_Bkg_0310:
+    integ = rc.GetSpectrum().IntegralAndError(int(lowPE/binWidth), int(20./binWidth), ey)
+    yHistRate2_0310.append([integ, copy.copy((float(ey.value)))])
+  yHistRate2_0310 = np.array(yHistRate2_0310)
+
+  yHistRate2_0411 = []
+  for rc in rcl_Bkg_0411:
+    integ = rc.GetSpectrum().IntegralAndError(int(lowPE/binWidth), int(20./binWidth), ey)
+    yHistRate2_0411.append([integ, copy.copy((float(ey.value)))])
+  yHistRate2_0411 = np.array(yHistRate2_0411)
+
+  # yHistRate2_0310 = np.array([rc.GetSpectrum().Integral(int(2.5/binWidth), int(20./binWidth)) for rc in rcl_Bkg_0310])
+  # yHistRate2_0411 = np.array([rc.GetSpectrum().Integral(int(2.5/binWidth), int(20./binWidth)) for rc in rcl_Bkg_0411])
+
+  ##### Rate, SPE vs EOR #####
+  bkgfig, bkgaxes = plt.subplots(3, 1, figsize = (10, 6))
+
+  bkgaxes[0].errorbar(x = xEOR_0310, y = ySPE_0310, yerr = yeSPE_0310, label = "0310", marker = "o", linestyle = 'None')
+  bkgaxes[0].errorbar(x = xEOR_0411, y = ySPE_0411, yerr = yeSPE_0411, label = "0411", marker = "s", linestyle = 'None')
+  
+  bkgaxes[0].set_title("SPE vs EOR")
+  bkgaxes[0].legend()
+
+  bkgaxes[1].plot(xEOR_0310, yTTrate_0310, marker = "o", linestyle = 'None', label = "0310 - tt")
+  bkgaxes[1].plot(xEOR_0411, yTTrate_0411, marker = "s", linestyle = 'None', label = "0411 - tt")
+
+  bkgaxes[1].plot(xEOR_0310, yHistRate_0310, marker = "o", linestyle = 'None', label = "0310 - hist")
+  bkgaxes[1].plot(xEOR_0411, yHistRate_0411, marker = "s", linestyle = 'None', label = "0411 - hist")
+
+  bkgaxes[1].set_title("rate vs EOR")
+  bkgaxes[1].legend()
+
+  bkgaxes[2].errorbar(xEOR_0310, yHistRate2_0310[:,0], yerr = yHistRate2_0310[:, 1], marker = "o", linestyle = 'None', label="0310 hist rate > 2.5PE")
+  bkgaxes[2].errorbar(xEOR_0411, yHistRate2_0411[:,0], yerr = yHistRate2_0411[:,1], marker = "s", linestyle = 'None', label="0411 rate > 2.5PE")
+  bkgaxes[2].legend()
+  bkgfig.show()
+
+  ##### SPE vs Rate plots #####
+  fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+
+  ax.errorbar(x = ySPE_0310, y = yHistRate2_0310[:, 0], xerr = yeSPE_0310, yerr = yHistRate2_0310[:, 1], marker = "o", linestyle = 'None', label = "0310")
+  ax.errorbar(x = ySPE_0411, y = yHistRate2_0411[:,0], xerr = yeSPE_0411, yerr = yHistRate2_0411[:,1], marker = "s", linestyle = 'None', label = "0411")
+
+  ax.legend()
+  ax.set_xlabel("SPE")
+  ax.set_ylabel("Rate")
+  ax.set_title("Rate vs SPE")
+  fig.show()
+
+
+
   # xSourceHeight = np.array([rc.GetHeight() for rc in rcl_cs_bare_heights])
   # xSource_EOR = np.array([rc.GetEORtime() for rc in rcl_cs_bare_heights])
   # yFixedRate = np.array([rc.GetRate() for rc in rcl_cs_bare_heights])
