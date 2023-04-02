@@ -152,6 +152,25 @@ class RunClass:
     self.mhCorrSpectrum = hCorr
     return hCorr
   
+  ## time to next event histogram
+  def BuildTTNE(self, histRef):
+    evTime = np.array([0], dtype = "float32")
+    self.tt.SetBranchAddress("evTime", evTime)
+    self.tt.GetEntry(0)
+    lastTime = evTime[0]
+    for i in range(1, self.tt.GetEntries()):
+      self.tt.GetEntry(i)
+      newTime = evTime[0]
+      deltaTime = (newTime-lastTime) * 8 * 1e-9
+      if newTime < lastTime: # handle rollover
+        deltaTime = 8 * 1e-9 * 2**31 - deltaTime
+        lastTime = newTime
+        # continue
+      histRef.Fill(deltaTime)
+      lastTime = newTime
+    self.mhTTNE = histRef
+    return self.mhTTNE
+    
 
 
 ## ---------------------------------------------------------------- ##

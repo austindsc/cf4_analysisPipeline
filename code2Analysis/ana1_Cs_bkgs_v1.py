@@ -108,20 +108,22 @@ if __name__ == '__main__':
   ## Time between events for one run
   # ignore rollover for now
   hTimeBetweenEvents = TH1F("hTimeBetweenEvents", "hTimeBetweenEvents", 100, 0., 0.2)
-  evTime = np.array([0], dtype = "float32")
-  timeRC = rcl_Bkg_0310[0]
-  timeRC.tt.SetBranchAddress("evTime", evTime)
-  timeRC.tt.GetEntry(0)
-  lastTime = evTime[0]
-  for i in range(1, timeRC.tt.GetEntries()):
-    timeRC.tt.GetEntry(i)
-    newTime = evTime[0]
-    deltaTime = (newTime-lastTime) * 8 * 1e-9
-    if newTime < lastTime:
-      lastTime = newTime
-      continue
-    hTimeBetweenEvents.Fill(deltaTime)
-    lastTime = newTime
+  rcl_Bkg_0310[0].BuildTTNE(hTimeBetweenEvents)
+  # evTime = np.array([0], dtype = "float32")
+  # timeRC = rcl_Bkg_0310[0]
+  # timeRC.tt.SetBranchAddress("evTime", evTime)
+  # timeRC.tt.GetEntry(0)
+  # lastTime = evTime[0]
+  # for i in range(1, timeRC.tt.GetEntries()):
+  #   timeRC.tt.GetEntry(i)
+  #   newTime = evTime[0]
+  #   deltaTime = (newTime-lastTime) * 8 * 1e-9
+  #   if newTime < lastTime:
+  #     deltaTime = 8 * 1e-9 * 2**31 - deltaTime
+  #     lastTime = newTime
+  #     # continue
+  #   hTimeBetweenEvents.Fill(deltaTime)
+  #   lastTime = newTime
   # for rc in rcl_cs_bare_heights:
   #   rc.BuildCorrSpectrum(hNPE_bkg_0310)
   
