@@ -20,12 +20,8 @@ class SORTING:
 
 
 #add voltage to RunClass object
-
 def getDate(runID):
 	return str(runID)[4:4+4]
-
-def getEORtime(runID):
-  return str(runID)[-4:]
 
 ## ---------------------------------------------------------------- ##
 class PhysicsInstance:
@@ -62,8 +58,11 @@ class RunClass:
     return self.mRateError
   
   def GetEORtime(self):
-    # mins = getEORtime(self.runID)
-    return int(getEORtime(self.id))
+    return str(self.id)[-4:]
+  
+  def GetEORmin(self):
+    time = self.GetEORtime()
+    return float(time[0:2])*60 + float(time[2:4])
 
   def GetRunTime(self): # returns in seconds
     if not hasattr(self, 'mRunTime'):
@@ -100,6 +99,13 @@ class RunClass:
       chan.print()
     return
   
+  def FindClosestRC(self, rcl_bkg):
+    t0 = self.GetEORmin()
+    timeDifs = [abs(t0 - rc.GetEORmin()) for rc in rcl_bkg]
+    indexClosestRC = timeDifs.index(min(timeDifs))
+    self.mBkgRC = rcl_bkg.index(indexClosestRC)
+    return self.mBkgRC
+  
   ## pick height from corresponding list of runs
   def assign_height(self, runIDList:list, runHeightList:list):
     if self.id in runIDList:
@@ -120,7 +126,7 @@ class RunClass:
     return
 
   ## Getting and building NPE spectra
-  def getSpectrum(self):
+  def GetSpectrum(self):
     if hasattr(self, 'mhSpectrum'):
       return self.mhSpectrum
     else:
@@ -133,9 +139,6 @@ class RunClass:
     GB.build_SPEFixed_histogram(self, varname, self.mhSpectrum, peCut)
     if rate == True:
       self.mhSpectrum.Scale(1./self.GetRunTime())
-    return self.mhSpectrum
-  
-  def GetSpectrum(self):
     return self.mhSpectrum
   
   def GetCorrSpectrum(self):
@@ -154,6 +157,7 @@ class RunClass:
   
   ## time to next event histogram
   def BuildTTNE(self, histRef):
+    self.mhTTNE = histRef.Clone(histRef.GetName() + "_" + str(self.id))
     evTime = np.array([0], dtype = "float32")
     self.tt.SetBranchAddress("evTime", evTime)
     self.tt.GetEntry(0)
@@ -166,9 +170,8 @@ class RunClass:
         deltaTime = 8 * 1e-9 * 2**31 - deltaTime
         lastTime = newTime
         # continue
-      histRef.Fill(deltaTime)
+      self.mhTTNE.Fill(deltaTime)
       lastTime = newTime
-    self.mhTTNE = histRef
     return self.mhTTNE
     
 

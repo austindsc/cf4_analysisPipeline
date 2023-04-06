@@ -5,14 +5,14 @@ from array import array
 import copy
 import time
 
+import matplotlib.pyplot as plt
+
 ## ROOT stuff
 import ROOT
 from ROOT import TFile, TTree, TCanvas
 from ROOT import TH1F
 import ctypes
 import copy
-
-import matplotlib.pyplot as plt
 
 ## Atown's stuff
 from helpers.anaStructs import * # includes SORTING class/namespace
@@ -22,9 +22,10 @@ import helpers.graphBuilders as GB
 ## ------------- User Inputs ------------- ##
 ## USER INPUTS (kinda bad ngl) ##
 NCHAN = 3
-VERBOSE = False
+VERBOSE = True
 # QVAR_USE = "qRCFlat"
-QVAR_USE = "qFlat"
+QVAR_USE = "qRCFixed"
+# QVAR_USE = "qFlat"
 PECUTVALUE = 0.5
 
 ## Paths to files, runLists
@@ -72,9 +73,9 @@ if __name__ == '__main__':
     rcList.append(rcObj)
 
   # printing information
-  rcList[0].tt.Show(0)
-  for rc in rcList:
-    rc.print()
+  # rcList[0].tt.Show(0)
+  # for rc in rcList:
+  #   rc.print()
 
   #### Sorting RC objects ####
   rcl_Bkg_0310 = SORTING.pickListOfRC(bkgList_0310, rcList) # get all RC background objects
@@ -106,24 +107,10 @@ if __name__ == '__main__':
   GB.build_bkgHistogramFast(rcl_Bkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE) # this calls build_SPEFixedHistogram iteratively, does rate calculation...
   
   ## Time between events for one run
-  # ignore rollover for now
   hTimeBetweenEvents = TH1F("hTimeBetweenEvents", "hTimeBetweenEvents", 100, 0., 0.2)
-  rcl_Bkg_0310[0].BuildTTNE(hTimeBetweenEvents)
-  # evTime = np.array([0], dtype = "float32")
-  # timeRC = rcl_Bkg_0310[0]
-  # timeRC.tt.SetBranchAddress("evTime", evTime)
-  # timeRC.tt.GetEntry(0)
-  # lastTime = evTime[0]
-  # for i in range(1, timeRC.tt.GetEntries()):
-  #   timeRC.tt.GetEntry(i)
-  #   newTime = evTime[0]
-  #   deltaTime = (newTime-lastTime) * 8 * 1e-9
-  #   if newTime < lastTime:
-  #     deltaTime = 8 * 1e-9 * 2**31 - deltaTime
-  #     lastTime = newTime
-  #     # continue
-  #   hTimeBetweenEvents.Fill(deltaTime)
-  #   lastTime = newTime
+  for rc in rcl_Bkg_0310:
+    rc.BuildTTNE(hTimeBetweenEvents)
+    
   # for rc in rcl_cs_bare_heights:
   #   rc.BuildCorrSpectrum(hNPE_bkg_0310)
   
@@ -139,18 +126,17 @@ if __name__ == '__main__':
   # # hNPE_bkg_0310.GetXaxis().SetRangeUser(0, 20)
   # rateBkg_0310 = hNPE_bkg_0310.Integral()
 
-  # rcl_cs_bare_heights[1].getSpectrum().SetLineColor(2)
-  # rcl_cs_bare_heights[1].getSpectrum().Draw("hist E same")
   
   # c1.SetLogy()
   # c1.Update()
 
-  ## plotting all bkg spectra
-  c0 = TCanvas()
-  c0.Divide(1, 2)
-  c0.cd(1).SetLogy()
 
-  ROOT.gStyle.SetOptStat(0)
+  ## plotting all bkg spectra
+  # ROOT.gStyle.SetOptStat(0) # this breaks SPE verbosity (showing outputs)
+
+  c0 = TCanvas()
+  c0.Divide(1, 2, 0.01, 0.01, 0)
+  c0.cd(1).SetLogy()
 
   hReference.GetXaxis().SetRangeUser(0, 20)
   hReference.Draw("hist")
@@ -161,7 +147,6 @@ if __name__ == '__main__':
     h.SetLineWidth(3)
 
     h.Draw("hist same E")
-
 
   c0.cd(2)
   c0.cd(2).SetLogy()
@@ -176,45 +161,40 @@ if __name__ == '__main__':
 
   c0.Update()
 
-  #### corrected figs ####
-  # c2 = TCanvas()
-
-  # hReference.Draw("hist")
-  # hReference.GetXaxis().SetRangeUser(0, 20.)
-  # leg = ROOT.TLegend()
-  # ROOT.gStyle.SetOptStat(0)
-
-  # for rc in rcl_cs_bare_heights:
-  #   hCorr = rc.getCorrSpectrum()
-
-  #   hCorr.SetLineColor(rcl_cs_bare_heights.index(rc)+1)
-
-  #   hCorr.Draw("hist same E")
-  #   leg.AddEntry(hCorr, str(rc.mHeight), "L")
-
-  # leg.Draw("same")
-  # c2.SetLogy()
-  # c2.Update()
-
-  c3 = TCanvas()
+  #### TTNE figs ####
+  c2 = TCanvas()
+  # hTimeBetweenEvents.GetXaxis().SetLimits(0.1, 1000)
+  hTimeBetweenEvents.SetMaximum(1000)
   hTimeBetweenEvents.Draw("hist")
-  c3.SetLogy()
-  c3.Update()
 
+  for rc in rcl_Bkg_0310:
+    h = rc.mhTTNE
+    index = rcl_Bkg_0310.index(rc)
+    h.SetLineColor(index+1)
+    h.SetLineWidth(2)
+    h.Scale(1+index/10.)
+    h.Draw("hist same E")
 
-  ################ Matplotlib plotting ################
-  plt.ion()
+  c2.SetLogy()
+  c2.Update()
+
+  # c3 = TCanvas()
+  # hTimeBetweenEvents.Draw("hist")
+  # c3.SetLogy()
+  # c3.Update()
+
 
   ### Bkg investigation ###
 
   ## SPE size ##
-  ySPE_0310 = np.array([rc.GetSPE(0) for rc in rcl_Bkg_0310])
-  yeSPE_0310 = np.array([rc.GetChan(0).mSpe.espe for rc in rcl_Bkg_0310])
-  xEOR_0310 = np.array([rc.GetEORtime() for rc in rcl_Bkg_0310])
+  plotChan = 2
+  ySPE_0310 = np.array([rc.GetSPE(plotChan) for rc in rcl_Bkg_0310])
+  yeSPE_0310 = np.array([rc.GetChan(plotChan).mSpe.espe for rc in rcl_Bkg_0310])
+  xEOR_0310 = np.array([int(rc.GetEORtime()) for rc in rcl_Bkg_0310])
 
-  ySPE_0411 = np.array([rc.GetSPE(0) for rc in rcl_Bkg_0411])
-  yeSPE_0411 = np.array([rc.GetChan(0).mSpe.espe for rc in rcl_Bkg_0411])
-  xEOR_0411 = np.array([rc.GetEORtime() for rc in rcl_Bkg_0411])
+  ySPE_0411 = np.array([rc.GetSPE(plotChan) for rc in rcl_Bkg_0411])
+  yeSPE_0411 = np.array([rc.GetChan(plotChan).mSpe.espe for rc in rcl_Bkg_0411])
+  xEOR_0411 = np.array([int(rc.GetEORtime()) for rc in rcl_Bkg_0411])
 
   ## TT rate ##
   yTTrate_0310 = np.array([rc.GetRate() for rc in rcl_Bkg_0310])
@@ -245,68 +225,43 @@ if __name__ == '__main__':
   # yHistRate2_0310 = np.array([rc.GetSpectrum().Integral(int(2.5/binWidth), int(20./binWidth)) for rc in rcl_Bkg_0310])
   # yHistRate2_0411 = np.array([rc.GetSpectrum().Integral(int(2.5/binWidth), int(20./binWidth)) for rc in rcl_Bkg_0411])
 
-  ##### Rate, SPE vs EOR #####
-  bkgfig, bkgaxes = plt.subplots(3, 1, figsize = (10, 6))
+  ################ Matplotlib plotting ################
 
-  bkgaxes[0].errorbar(x = xEOR_0310, y = ySPE_0310, yerr = yeSPE_0310, label = "0310", marker = "o", linestyle = 'None')
-  bkgaxes[0].errorbar(x = xEOR_0411, y = ySPE_0411, yerr = yeSPE_0411, label = "0411", marker = "s", linestyle = 'None')
-  
-  bkgaxes[0].set_title("SPE vs EOR")
-  bkgaxes[0].legend()
+  showMatPlotLib = input("do you want to see matplotlib stuff? (y/n):\n")
 
-  bkgaxes[1].plot(xEOR_0310, yTTrate_0310, marker = "o", linestyle = 'None', label = "0310 - tt")
-  bkgaxes[1].plot(xEOR_0411, yTTrate_0411, marker = "s", linestyle = 'None', label = "0411 - tt")
+  if showMatPlotLib == 'y':
+    ##### Rate, SPE vs EOR #####
+    plt.ion()
+    bkgfig, bkgaxes = plt.subplots(3, 1, figsize = (10, 6))
 
-  bkgaxes[1].plot(xEOR_0310, yHistRate_0310, marker = "o", linestyle = 'None', label = "0310 - hist")
-  bkgaxes[1].plot(xEOR_0411, yHistRate_0411, marker = "s", linestyle = 'None', label = "0411 - hist")
+    bkgaxes[0].errorbar(x = xEOR_0310, y = ySPE_0310, yerr = yeSPE_0310, label = "0310", marker = "o", linestyle = 'None')
+    bkgaxes[0].errorbar(x = xEOR_0411, y = ySPE_0411, yerr = yeSPE_0411, label = "0411", marker = "s", linestyle = 'None')
+    
+    bkgaxes[0].set_title("SPE vs EOR")
+    bkgaxes[0].legend()
 
-  bkgaxes[1].set_title("rate vs EOR")
-  bkgaxes[1].legend()
+    bkgaxes[1].plot(xEOR_0310, yTTrate_0310, marker = "o", linestyle = 'None', label = "0310 - tt")
+    bkgaxes[1].plot(xEOR_0411, yTTrate_0411, marker = "s", linestyle = 'None', label = "0411 - tt")
 
-  bkgaxes[2].errorbar(xEOR_0310, yHistRate2_0310[:,0], yerr = yHistRate2_0310[:, 1], marker = "o", linestyle = 'None', label="0310 hist rate > 2.5PE")
-  bkgaxes[2].errorbar(xEOR_0411, yHistRate2_0411[:,0], yerr = yHistRate2_0411[:,1], marker = "s", linestyle = 'None', label="0411 rate > 2.5PE")
-  bkgaxes[2].legend()
-  bkgfig.show()
+    bkgaxes[1].plot(xEOR_0310, yHistRate_0310, marker = "o", linestyle = 'None', label = "0310 - hist")
+    bkgaxes[1].plot(xEOR_0411, yHistRate_0411, marker = "s", linestyle = 'None', label = "0411 - hist")
 
-  ##### SPE vs Rate plots #####
-  fig, ax = plt.subplots(1, 1, figsize=(6, 4))
+    bkgaxes[1].set_title("rate vs EOR")
+    bkgaxes[1].legend()
 
-  ax.errorbar(x = ySPE_0310, y = yHistRate2_0310[:, 0], xerr = yeSPE_0310, yerr = yHistRate2_0310[:, 1], marker = "o", linestyle = 'None', label = "0310")
-  ax.errorbar(x = ySPE_0411, y = yHistRate2_0411[:,0], xerr = yeSPE_0411, yerr = yHistRate2_0411[:,1], marker = "s", linestyle = 'None', label = "0411")
+    bkgaxes[2].errorbar(xEOR_0310, yHistRate2_0310[:,0], yerr = yHistRate2_0310[:, 1], marker = "o", linestyle = 'None', label="0310 hist rate > 2.5PE")
+    bkgaxes[2].errorbar(xEOR_0411, yHistRate2_0411[:,0], yerr = yHistRate2_0411[:,1], marker = "s", linestyle = 'None', label="0411 rate > 2.5PE")
+    bkgaxes[2].legend()
 
-  ax.legend()
-  ax.set_xlabel("SPE")
-  ax.set_ylabel("Rate")
-  ax.set_title("Rate vs SPE")
-  fig.show()
+    ##### SPE vs Rate plots #####
+    fig, ax = plt.subplots(1, 1, figsize=(6, 4))
 
+    ax.errorbar(x = ySPE_0310, y = yHistRate2_0310[:, 0], xerr = yeSPE_0310, yerr = yHistRate2_0310[:, 1], marker = "o", linestyle = 'None', label = "0310")
+    ax.errorbar(x = ySPE_0411, y = yHistRate2_0411[:,0], xerr = yeSPE_0411, yerr = yHistRate2_0411[:,1], marker = "s", linestyle = 'None', label = "0411")
 
+    ax.legend()
+    ax.set_xlabel("SPE")
+    ax.set_ylabel("Rate")
+    ax.set_title("Rate vs SPE")
 
-  # xSourceHeight = np.array([rc.GetHeight() for rc in rcl_cs_bare_heights])
-  # xSource_EOR = np.array([rc.GetEORtime() for rc in rcl_cs_bare_heights])
-  # yFixedRate = np.array([rc.GetRate() for rc in rcl_cs_bare_heights])
-  # yFixedRateError = np.array([rc.GetRateError() for rc in rcl_cs_bare_heights])
-
-  # # heightLabels = np.array([rc.mHeight() for rc in rcl_cs_bare_heights])
-
-  # y0311_rate = np.array([rc.GetRate() for rc in rcl_Bkg_0310])
-  # y0311_rate_error = np.array([rc.GetRateError() for rc in rcl_Bkg_0310])
-  # x0311_fake = np.linspace(start = min(xSourceHeight), stop=max(xSourceHeight), num = len(rcl_Bkg_0310))
-  # x0311_EOR = np.array([rc.GetEORtime() for rc in rcl_Bkg_0310])
-
-  # fig, ax = plt.subplots(1, 1, figsize = (8, 4))
-  # ax.errorbar(x = xSourceHeight, y = yFixedRate, yerr = yFixedRateError)
-  # ax.errorbar(x0311_fake, y0311_rate, y0311_rate_error, marker = '.')
-  # fig.show()
-
-  # fig2, ax2 = plt.subplots(1, 1, figsize = (8, 4))
-  # ax2.set_xlabel('EOR time')
-  # ax2.errorbar(x = xSource_EOR, y = yFixedRate, yerr = yFixedRateError, linestyle = 'none')
-  # ax2.errorbar(x0311_EOR, y0311_rate, y0311_rate_error, marker = '.', linestyle = 'none')
-
-  # for i, height in enumerate(xSourceHeight):
-  #   ax2.annotate(height, (xSource_EOR[i], yFixedRate[i]))
-  # fig2.show()
-
-  # ROOT.gApplication.Run()
-  # pass
+    plt.show()

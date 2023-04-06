@@ -19,19 +19,20 @@ class SpeStuff:
 
 def getSPEVval2(tt, width = 10., verbose = False, varName = "qFixed", channel = 0, runName = ""):
 
-  drawCommand = str(varName+f"[{channel:.0f}]" + ">>hist")
-  cutCommand = str(varName+f"[{channel:.0f}]"+"> 60")
+  histName = "qvar-hist_"+runName+"_chan"+str(int(channel))
+  drawCommand = str(varName+f"[{channel:.0f}]" + ">>"+histName)
+  cutCommand = str(varName+f"[{channel:.0f}]"+"> 40")
   dopt = "goff"
   fopt = "QRN0ML"
   if verbose == True:
     dopt = ""
     fopt = "+RML same"
-    c = ROOT.TCanvas(runName+"_"+drawCommand, runName+"_"+drawCommand)
+    c = ROOT.TCanvas(drawCommand, drawCommand)
     c.cd()
   
   findPeakFactor = 1.4
 
-  hist = ROOT.TH1F("hist", "hist", 200, 0, 1000)
+  hist = ROOT.TH1F(histName, histName, 200, 0, 1000)
   hist.GetXaxis().SetTitle("Charge, adc x ns")
   hist.GetYaxis().SetTitle("Counts")
   hist.GetXaxis().SetRange(int(100/5), 200)
@@ -73,7 +74,7 @@ def getSPEVval2(tt, width = 10., verbose = False, varName = "qFixed", channel = 
     print("q2pe = ", q2pe)
     print(f"ch{channel:.0f} SPE, {spe:0.2f}")
 
-    ROOT.gStyle.SetOptFit(1)
+    # ROOT.gStyle.SetOptFit(1)
     c.SetLogy()
     c.Update()
   else:
