@@ -35,7 +35,7 @@ class RunClass:
     self.id = run #run ID (from integer)
     self.tt = ttree
     self.label=""
-    self.date = getDate(run)
+    self.mDate = getDate(run)
     self.mChannels = [Channel(i) for i in range(nChan)]
     self.mHeight = 0 #0 means background
     return
@@ -103,7 +103,7 @@ class RunClass:
     t0 = self.GetEORmin()
     timeDifs = [abs(t0 - rc.GetEORmin()) for rc in rcl_bkg]
     indexClosestRC = timeDifs.index(min(timeDifs))
-    self.mBkgRC = rcl_bkg.index(indexClosestRC)
+    self.mBkgRC = rcl_bkg[indexClosestRC]
     return self.mBkgRC
   
   ## pick height from corresponding list of runs
@@ -148,8 +148,13 @@ class RunClass:
       print("rcObject" + self.id + " has no mhCorrSpectrum")
       return None
 
-  def BuildCorrSpectrum(self, histBkg):
-    h = self.getSpectrum()
+  ## pass it a bkg spectrum to subtract
+  # call with nothing, it uses the pre-existing assigned spectrum from
+  # the closest bkg RC object
+  def BuildCorrSpectrum(self, histBkg = None):
+    if histBkg is None:
+      histBkg = self.mBkgRC.GetSpectrum()
+    h = self.GetSpectrum()
     hCorr = h.Clone(h.GetName()+"_corrected")
     hCorr.Add(histBkg, -1)
     self.mhCorrSpectrum = hCorr

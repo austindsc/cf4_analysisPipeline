@@ -91,8 +91,8 @@ SAMPLING = 16.
 BLINEEND = 500.
 NULLVAL = 0.0
 SKIPENDTIME = 500.
-defRun = 202205271113
-defDir = "2022/05"
+defRun = 202203101150
+defDir = "2022/03"
 # defDir = "caenTesting"
 
 
@@ -282,17 +282,17 @@ if __name__ == "__main__":
 				ax0.axhline(y = blines.get('v'), color = "m", linewidth = 1, alpha = 0.4)
 
 				if tt_chInfo[ich] == 1:
-					ax0.axvline(SAMPLING*fEarly, ymax = 1., ymin = 0.5, color = f'{colors[ich]}', linestyle = '-', label = "normal - flat")
+					ax0.axvline(SAMPLING*fEarly, ymax = 1., ymin = (ich+1)*0.5/3, color = f'{colors[ich]}', linestyle = '-', label = "normal - toFlat")
 					# ax0.axvline(tt_xMin)
-					ax0.axvline(SAMPLING*fLate, ymax = 1., ymin = 0.5, color = f'{colors[ich]}', linestyle = '-')
-
+					ax0.axvline(SAMPLING*fLate, ymax = 1., ymin = (ich+1)*0.5/3, color = f'{colors[ich]}', linestyle = '-')
+					# print(SAMPLING*fEarly, SAMPLING*fLate)
 					ax0.plot(x, BaselineRestoration(wfm = wfm-blines.get("v"), tau = 2900, width = SAMPLING)+blines.get('v')\
 						, f'--{colors[ich]}', alpha = 0.8, label = f"rc ch {ich}")
 					ax0.axvline(SAMPLING*rcLate, ymax = 0.5, ymin = 0, color = f'{colors[ich]}', linestyle = "--", alpha = 1, label = "RC fixed")
 					ax0.axvline(SAMPLING*rcEarly, ymax = 0.5, ymin = 0, color = f'{colors[ich]}',linestyle = "--", alpha = 1)
 					
 					ax0.axvline(SAMPLING*rcSEarly, ymax = .5, ymin = 0, color = f'{colors[ich]}', linestyle = "dotted", alpha = 1)
-					ax0.axvline(SAMPLING*(rcSLate), ymax = 0.5, ymin = 0, color = f'{colors[ich]}', linestyle = "dotted", alpha = 1, label = "RC flat")
+					ax0.axvline(SAMPLING*(rcSLate), ymax = 0.5, ymin = 0, color = f'{colors[ich]}', linestyle = "dotted", alpha = 1, label = "RC toFlat")
 
 		#### done channel loop
 		
@@ -303,6 +303,7 @@ if __name__ == "__main__":
 		tt.Fill()
 
 		##### plotting event level #####
+		# if args.live == True and np.sum(tt_qFlat) > 9000:
 		if args.live == True:
 			print("event time %i" % evtime)
 			print("blineV", tt_blineV)
@@ -320,11 +321,11 @@ if __name__ == "__main__":
 			ax0.legend()
 			plt.draw()
 			plt.pause(0.1)
-			
+		
 			while(plt.waitforbuttonpress(timeout = -1) == False):
 				plt.pause(0.1)
 			plt.connect('key_press_event', on_press)
-			ax0.clear()
+		ax0.clear()
 
 
 	# hFile = gROOT.FindObject(outName)

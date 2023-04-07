@@ -23,9 +23,11 @@ import helpers.graphBuilders as GB
 ## USER INPUTS (kinda bad ngl) ##
 NCHAN = 3
 VERBOSE = True
+ASK_MATPLOT = False
 # QVAR_USE = "qRCFlat"
-QVAR_USE = "qRCFixed"
-# QVAR_USE = "qFlat"
+# QVAR_USE = "qRCFixed"
+QVAR_USE = "qFlat"
+# QVAR_USE = "qFixed"
 PECUTVALUE = 0.5
 
 ## Paths to files, runLists
@@ -89,8 +91,8 @@ if __name__ == '__main__':
   # BORING
 
   ######## Building Full Spectra ########
-  binHigh = 50.
-  Nbins = 500.
+  binHigh = 80.
+  Nbins = 400.
   binWidth = (binHigh - 0.) / Nbins
   hReference = TH1F("hReference", "hReference", int(Nbins), 0., binHigh) # histogram that everything is built off
   hReference.Sumw2(True)
@@ -183,7 +185,7 @@ if __name__ == '__main__':
   # c3.SetLogy()
   # c3.Update()
 
-
+  ################ Matplotlib Math ################
   ### Bkg investigation ###
 
   ## SPE size ##
@@ -226,10 +228,11 @@ if __name__ == '__main__':
   # yHistRate2_0411 = np.array([rc.GetSpectrum().Integral(int(2.5/binWidth), int(20./binWidth)) for rc in rcl_Bkg_0411])
 
   ################ Matplotlib plotting ################
+  showMatPlotLib = 'n'
+  if ASK_MATPLOT:
+    showMatPlotLib = input("do you want to see matplotlib stuff? (y/n):\n")
 
-  showMatPlotLib = input("do you want to see matplotlib stuff? (y/n):\n")
-
-  if showMatPlotLib == 'y':
+  if showMatPlotLib == 'y' and ASK_MATPLOT == True:
     ##### Rate, SPE vs EOR #####
     plt.ion()
     bkgfig, bkgaxes = plt.subplots(3, 1, figsize = (10, 6))
