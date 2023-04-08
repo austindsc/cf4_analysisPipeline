@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 ## ROOT stuff
 import ROOT
 from ROOT import TFile, TTree, TCanvas
-from ROOT import TH1F
+from ROOT import TH1F, TH2F
 # ROOT.gStyle.SetOptStat(0) # this breaks SPE verbosity
 
 import ctypes
@@ -26,6 +26,7 @@ import helpers.graphBuilders as GB
 NCHAN = 3
 VERBOSE = False
 ASK_MATPLOT = False
+DO_2D = True
 # QVAR_USE = "qRCFlat"
 # QVAR_USE = "qRCFixed"
 QVAR_USE = "qFlat"
@@ -40,9 +41,9 @@ bkgRunPath = "runLists/analysis1/bkgLists/"       # bkg run list files
 runID_cs_bare_heights = [202203101341, 202203101306, 202203101150, 202203101534, 202203101506]
 cs_bare_heights = [26.5, 28,	30.5,	32,	34.5]
 
-runID_cs_LP_heights = [202204111600,	202204111454,	202204111423]
+runID_cs_LP_heights = [202204111600,	202204111454,	202204111423, 202204121321]
 # 202204121321 is a 32 cm run
-cs_LP_heights = [26, 28.5,	30.5]
+cs_LP_heights = [26, 28.5,	30.5, 32.]
 
 physicsList = runID_cs_bare_heights + runID_cs_LP_heights
 
@@ -94,8 +95,8 @@ if __name__ == '__main__':
   # BORING
 
   ######## Building Full Spectra ########
-  binHigh = 100.
-  Nbins = 500.
+  binHigh = 80.
+  Nbins = 400.
   binWidth = (binHigh - 0.) / Nbins
   hReference = TH1F("hReference", "hReference", int(Nbins), 0., binHigh) # histogram that everything is built off
   hReference.Sumw2(True)
@@ -124,9 +125,36 @@ if __name__ == '__main__':
   for rc in rcl_cs_lp_heights:
     rc.FindClosestRC(rcl_Bkg_0411)
     rc.BuildCorrSpectrum()
-  
-  ########### Plotting ###########
 
+  ########### Plotting ###########
+  # if VERBOSE == False:
+  #   ROOT.gStyle.SetOptStat(0)
+
+  ### 2d histograms ###
+  FindRCbyHeight = lambda h, rclist: next((rc for rc in rclist if rc.GetHeight() == h), None)
+  ## Focusing on the 28cm, 32cm one, it's background run and their bkg runs
+  # rc32Bare = FindRCbyHeight(32, rcl_cs_bare_heights)
+  
+  if DO_2D:
+    h2sharing = TH2F("h2sharing", "h2sharing", int(80), 0., binHigh, int(40), 0., 1.0)
+    for rc in rcl_cs_bare_heights+rcl_Bkg_0310[1:2]:
+      hthis = h2sharing.Clone("h2sharing_" + str(rc.id))
+      hthis.SetTitle("h2sharing_" + str(rc.GetHeight()))
+      GB.build_2d_foccupancyHistogram(rc, hthis, qvar = QVAR_USE)
+      rc.mh2d = hthis
+
+  cduh = []
+  if DO_2D:
+    for rc in rcl_cs_bare_heights+rcl_Bkg_0310[1:2]:
+      c = TCanvas()
+      cduh.append(c)
+      c.cd()
+      rc.mh2d.Draw("colz")
+      c.SetLogz()
+      c.Update()
+
+    input("saw somthing to continue")
+  
   ## plotting all bkg spectra
 
   c0 = TCanvas()
@@ -157,21 +185,24 @@ if __name__ == '__main__':
   c0.Update()
 
   #### Corrected Spectra ####
+  heightSkip = [34.5]
+
   ## Bare Data ##
   c1 = TCanvas()
-  hReference.GetXaxis().SetRangeUser(0, 100)
+  hReference.SetTitle("Bare Data")
+  hReference.GetXaxis().SetRangeUser(0, 80)
   hReference.Draw("hist")
 
   leg1 = ROOT.TLegend()
 
   for rc in rcl_cs_bare_heights:
-    if rc.GetHeight() == 26.5 or rc.GetHeight() == 34.5:
+    if rc.GetHeight() in heightSkip:
       continue
     h = rc.GetCorrSpectrum()
     h.Rebin(8)
     h.SetLineColor(rcl_cs_bare_heights.index(rc)+1)
     h.SetLineWidth(2)
-    leg1.AddEntry(h, str(rc.mHeight) + "  run " + rc.GetEORtime(), "L")
+    leg1.AddEntry(h, str(rc.mHeight) + " run " + rc.mDate + " - " + rc.GetEORtime(), "L")
     h.Draw("hist same E")
   
   leg1.Draw("same")
@@ -181,21 +212,72 @@ if __name__ == '__main__':
 
   # ## LP data ##
   c2 = TCanvas()
+  hReference.SetTitle("Longpass Data")
   hReference.Draw("hist")
   leg2 = ROOT.TLegend()
 
   for rc in rcl_cs_lp_heights:
+    if rc.GetHeight() in heightSkip:
+      continue
     h = rc.GetCorrSpectrum()
     h.Rebin(8)
     h.SetLineColor(rcl_cs_lp_heights.index(rc)+1)
     h.SetLineWidth(2)
-    leg2.AddEntry(h, str(rc.mHeight) + "  run " + rc.GetEORtime(), "L")
+    leg2.AddEntry(h, str(rc.mHeight) + " run " + rc.mDate + " - " + rc.GetEORtime(), "L")
     h.Draw("hist same E")
   
   leg2.Draw("same")
 
   c2.SetLogy()
   c2.Update()
+
+  ## LP and Bare overlays ##
+  c3 = TCanvas("LP vs Bare")
+  c3.Divide(1, 3)
+  # leg3 = ROOT.TLegend()
+
+  ## 28.5cm ##
+  c3.cd(1).SetLogy()
+  hRef1 = hReference.Clone("hRef1")
+  hRef1.SetTitle("28 cm")
+  hRef1.GetXaxis().SetRangeUser(0, 20)
+  hRef1.Draw("hist")
+
+  rcBare = FindRCbyHeight(28, rcl_cs_bare_heights)
+  rcBare.GetCorrSpectrum().Draw("hist same E")
+
+  rcLP = FindRCbyHeight(28.5, rcl_cs_lp_heights)
+  rcLP.GetCorrSpectrum().SetFillColorAlpha(rcLP.GetCorrSpectrum().GetLineColor(), 0.5)
+  rcLP.GetCorrSpectrum().Draw("hist same E")
+
+  ## 30.5cm ##
+  c3.cd(2).SetLogy()
+  hRef2 = hReference.Clone("hRef2")
+  hRef2.SetTitle("30.5 cm")
+  hRef2.GetXaxis().SetRangeUser(0, 40)
+  hRef2.Draw("hist")
+
+  rcBare = FindRCbyHeight(30.5, rcl_cs_bare_heights)
+  rcBare.GetCorrSpectrum().Draw("hist same E")
+
+  rcLP = FindRCbyHeight(30.5, rcl_cs_lp_heights)
+  rcLP.GetCorrSpectrum().SetFillColorAlpha(rcLP.GetCorrSpectrum().GetLineColor(), 0.5)
+  rcLP.GetCorrSpectrum().Draw("hist same E")
+
+  ## 32cm ##
+  c3.cd(3).SetLogy()
+  hRef3 = hReference.Clone("hRef3")
+  hRef3.SetTitle("32 cm")
+  hRef3.GetXaxis().SetRange()
+  hRef3.Draw("hist")
+
+  rcBare = FindRCbyHeight(32, rcl_cs_bare_heights)
+  rcBare.GetCorrSpectrum().Draw("hist same E")
+
+  rcLP = FindRCbyHeight(32, rcl_cs_lp_heights)
+  rcLP.GetCorrSpectrum().SetFillColorAlpha(rcLP.GetCorrSpectrum().GetLineColor(), 0.5)
+  rcLP.GetCorrSpectrum().Draw("hist same E")
+  c3.Update()
 
   #### TTNE figs ####
   # c2 = TCanvas()

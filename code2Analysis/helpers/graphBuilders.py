@@ -43,6 +43,24 @@ def build_bkgHistogramFast(rcList:list, varName: str, histRef: ROOT.TH1, peCut =
   print("total time:", totalTime, "\n")
   return
 
+## Divide channel zero by 2
+def build_2d_foccupancyHistogram(rc, th2, qvar = "qFixed", peCut = 0.5, norm = True):
+  scaleCh0 = 2.
+  if norm is False:
+    scaleCh0 = 1.
+  for ev in rc.tt:
+    qVar = getattr(ev, qvar)
+    chanPE = np.array([qVar[0]/rc.GetSPE(0), qVar[1]/rc.GetSPE(1), qVar[2]/rc.GetSPE(2)])
+    evNPE = np.dot(chanPE, chanPE > 0.5) #only select ones greater than peCur (second argument is array of 1s and 0s)
+
+    if evNPE > peCut:
+      chanPEScaled = np.array([qVar[0]/scaleCh0/rc.GetSPE(0), qVar[1]/rc.GetSPE(1), qVar[2]/rc.GetSPE(2)])
+      sharePE = max(chanPEScaled)/evNPE
+      th2.Fill(evNPE, sharePE)
+  
+  print("built 2d sharing histogram for run", rc.id)
+  return th2
+
 # call build_SPEFixed.., adds them all together.
 # WRONG! N1 + N1 / t1 + t2 != N1/t1 + N1/t2
 def build_bkgHistogram(rcList:list, varName: str, histRef: ROOT.TH1, peCut = 0.5):
