@@ -119,7 +119,7 @@ class RunClass:
     return None
 
   ## compute SPE for all channels
-  def computeSPE(self, width = 15, verbose = True, varname = "qRCFlat", channels = [0, 1, 2]):
+  def computeSPE(self, width = 15, verbose = True, varname = "qFlat", channels = [0, 1, 2]):
     for ich in channels:
       tempSPE = GETSPE.getSPEVval2(self.tt, width, verbose, varname, ich, str(self.id))
       self.GetChan(ich).addSpe(tempSPE)

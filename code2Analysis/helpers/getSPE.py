@@ -21,7 +21,7 @@ def getSPEVval2(tt, width = 10., verbose = False, varName = "qFixed", channel = 
 
   histName = "qvar-hist_"+runName+"_chan"+str(int(channel))
   drawCommand = str(varName+f"[{channel:.0f}]" + ">>"+histName)
-  cutCommand = str(varName+f"[{channel:.0f}]"+"> 40")
+  cutCommand = str(varName+f"[{channel:.0f}]"+"> 30")
   dopt = "goff"
   fopt = "QRN0ML"
   if verbose == True:
@@ -35,7 +35,7 @@ def getSPEVval2(tt, width = 10., verbose = False, varName = "qFixed", channel = 
   hist = ROOT.TH1F(histName, histName, 200, 0, 1000)
   hist.GetXaxis().SetTitle("Charge, adc x ns")
   hist.GetYaxis().SetTitle("Counts")
-  hist.GetXaxis().SetRange(int(100/5), 200)
+  # hist.GetXaxis().SetRange(int(100/5), 200)
 
   tt.Draw(drawCommand, cutCommand, dopt)
 

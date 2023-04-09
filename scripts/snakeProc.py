@@ -9,8 +9,8 @@ from multiprocessing import Pool
 # defRunList = "/procData/runLists/analysis1/bkgLists/date_0411-48V.txt"
 # outDir = "/analysis1_bkg/"
 
-defRunList = "/procData/runLists/analysis1/CsList.txt"
-outDir = "/analysis1/"
+defRunList = "/procData/runLists/analysis1/bkgLists/date_0414-manyV.txt"
+outDir = "/analysis1_bkg/"
 
 def run_process(command):
 	subprocess.run(command, shell = True)

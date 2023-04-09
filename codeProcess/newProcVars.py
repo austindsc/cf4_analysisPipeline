@@ -325,7 +325,7 @@ if __name__ == "__main__":
 			while(plt.waitforbuttonpress(timeout = -1) == False):
 				plt.pause(0.1)
 			plt.connect('key_press_event', on_press)
-		ax0.clear()
+			ax0.clear()
 
 
 	# hFile = gROOT.FindObject(outName)

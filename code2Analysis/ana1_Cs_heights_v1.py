@@ -26,7 +26,7 @@ import helpers.graphBuilders as GB
 NCHAN = 3
 VERBOSE = False
 ASK_MATPLOT = False
-DO_2D = True
+DO_2D = False
 # QVAR_USE = "qRCFlat"
 # QVAR_USE = "qRCFixed"
 QVAR_USE = "qFlat"
@@ -77,6 +77,8 @@ if __name__ == '__main__':
 
     rcObj.computeSPE(width = 15, verbose=VERBOSE, varname=QVAR_USE, channels = [i for i in range(NCHAN)])
     rcList.append(rcObj)
+  if VERBOSE:
+    input("say somthing to move past bkg SPE plots")
 
   # printing information
   # rcList[0].tt.Show(0)
@@ -153,8 +155,7 @@ if __name__ == '__main__':
       c.SetLogz()
       c.Update()
 
-    input("saw somthing to continue")
-  
+    input("say somthing to continue past 2d plots")
   ## plotting all bkg spectra
 
   c0 = TCanvas()
