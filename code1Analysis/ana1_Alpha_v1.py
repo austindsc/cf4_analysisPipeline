@@ -24,7 +24,7 @@ import helpers.graphBuilders as GB
 ## ------------- User Inputs ------------- ##
 ## USER INPUTS (kinda bad ngl) ##
 NCHAN = 3
-VERBOSE = False
+VERBOSE = True
 ASK_MATPLOT = False
 DO_2D = False
 # QVAR_USE = "qRCFlat"
@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
   ######## Building Full Spectra ########
   binHigh = 80.
-  Nbins = 400.
+  Nbins = 80.
   binWidth = (binHigh - 0.) / Nbins
   hReference = TH1F("hReference", "hReference", int(Nbins), 0., binHigh) # histogram that everything is built off
   hReference.Sumw2(True)
@@ -120,7 +120,7 @@ if __name__ == '__main__':
   
   if DO_2D:
     h2sharing = TH2F("h2sharing", "h2sharing", int(80), 0., binHigh, int(40), 0., 1.0)
-    for rc in rcl_cs_bare_heights+rcl_Bkg_0310[1:2]:
+    for rc in rcList:
       hthis = h2sharing.Clone("h2sharing_" + str(rc.id))
       hthis.SetTitle("h2sharing_" + str(rc.GetHeight()))
       GB.build_2d_foccupancyHistogram(rc, hthis, qvar = QVAR_USE)
@@ -128,7 +128,7 @@ if __name__ == '__main__':
 
   cduh = []
   if DO_2D:
-    for rc in rcl_cs_bare_heights+rcl_Bkg_0310[1:2]:
+    for rc in rcList:
       c = TCanvas()
       cduh.append(c)
       c.cd()
@@ -143,10 +143,11 @@ if __name__ == '__main__':
   c0 = TCanvas()
   c0.Divide(1, 2, 0.01, 0.01, 0)
 
-  rcBare.GetSpectrum().Draw("hist E")
   
   hLp = rcLp.GetSpectrum()
   hLp.SetLineColor(2)
-  hLp.Draw("hist E same")
+  hLp.Draw("hist E")
+
+  rcBare.GetSpectrum().Draw("hist E same")
 
   c0.Update()
