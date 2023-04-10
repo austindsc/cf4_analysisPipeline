@@ -13,7 +13,7 @@ from ROOT import TGraphErrors, TLegend, RooFit, RooRealVar, RooDataSet, RooArgLi
 
 # ROOT.gStyle.SetOptStat(0) # this breaks SPE verbosity
 
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 
 import ctypes
 import copy
@@ -200,23 +200,28 @@ if __name__ == '__main__':
   result = fitter.Result()
   result.Print(ROOT.std.cout)
 
-  # c1 = ROOT.TCanvas("Simfit", "Simultaneous fit of two histograms", 10, 10, 700, 700)
-  # c1.Divide(1, 2)
-  # c1.cd(1)
-  # ROOT.gStyle.SetOptFit(1111)
+  ##### Rate, SPE vs EOR #####
+  fline = lambda x, m, vbr: m*(x - vbr)
+  m = result.GetParams()[0]
+  vbr1 = result.GetParams()[1]
+  vbr2 = result.GetParams()[2]
+  vbr3 = result.GetParams()[3]
 
-  # ftest.SetFitResult(result, ipar1)
-  # ftest.SetRange(range1().first, range1().second)
-  # ftest.SetLineColor(ROOT.kBlue)
-  # ht.GetListOfFunctions().Add(ftest)
-  # ht.Draw()
+  plt.ion()
+  fig, ax = plt.subplots(1, 1, figsize = (10, 6))
+  ax.set_xlabel('Applied Voltage')
+  ax.set_ylabel('Estimated SPE charge')
 
-  # c1.cd(2)
-  # ftest2.SetFitResult(result, ipar2)
-  # ftest2.SetRange(range2().first, range2().second)
-  # ftest2.SetLineColor(ROOT.kRed)
-  # ht2.GetListOfFunctions().Add(ftest2)
-  # ht2.Draw()
+  ax.errorbar(xV, y1, yerr = ye1, linestyle = 'None', label = "ch 0")
+  ax.plot(xV, fline(xV, m, vbr1))
 
-  # ht2.Draw()
-  # c1.Update()
+  ax.errorbar(xV, y2, yerr = ye2, linestyle = 'None', label = "ch 1")
+  ax.plot(xV, fline(xV, m, vbr2))
+
+  ax.errorbar(xV, y3, yerr = ye3, linestyle = 'None', label = "ch 2")
+  ax.plot(xV, fline(xV, m, vbr3))
+
+  # ax.text(0.05, 0.95, textstr, transform=ax.transAxes, fontsize=14,
+  #         verticalalignment='top', bbox=props)
+
+  plt.show()
