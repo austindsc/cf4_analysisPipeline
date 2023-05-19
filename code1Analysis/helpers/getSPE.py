@@ -41,7 +41,8 @@ def getSPEVval2(tt, width = 10., verbose = False, varName = "qFixed", channel = 
 
   ## First peak as maximum
   xMaxPeak = hist.GetXaxis().GetBinCenter(hist.GetMaximumBin())
-  print("max location = ", xMaxPeak)
+  if verbose:
+    print("max location = ", xMaxPeak)
   fg1 = ROOT.TF1("fg1", "gaus", xMaxPeak - width, xMaxPeak + width)
   fg1.SetParameters(hist.GetMaximum(), xMaxPeak, width/2)
   hist.Fit("fg1", fopt)
@@ -56,7 +57,8 @@ def getSPEVval2(tt, width = 10., verbose = False, varName = "qFixed", channel = 
 
   # s.Print()
   xp = [s.GetPositionX()[i] for i in range(npeaks)]
-  print("second peak = ", xp[0])
+  if verbose:
+    print("second peak = ", xp[0])
   xa.SetRange() # reset range
 
   ## fit second gaussian
