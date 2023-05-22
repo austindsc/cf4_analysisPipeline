@@ -145,7 +145,7 @@ class RunClass:
     if hasattr(self, 'mhCorrSpectrum'):
       return self.mhCorrSpectrum
     else:
-      print("rcObject" + self.id + " has no mhCorrSpectrum")
+      print("rcObject" + str(self.id) + " has no mhCorrSpectrum")
       return None
 
   ## pass it a bkg spectrum to subtract

@@ -22,8 +22,8 @@ import helpers.graphBuilders as GB
 ## ------------- User Inputs ------------- ##
 ## USER INPUTS (kinda bad ngl) ##
 NCHAN = 3
-VERBOSE = True
-ASK_MATPLOT = False
+VERBOSE = False
+ASK_MATPLOT = True
 # QVAR_USE = "qRCFlat"
 # QVAR_USE = "qRCFixed"
 QVAR_USE = "qFlat"

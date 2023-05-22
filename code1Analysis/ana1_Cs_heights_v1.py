@@ -26,7 +26,7 @@ import helpers.graphBuilders as GB
 NCHAN = 3
 VERBOSE = False
 ASK_MATPLOT = False
-DO_2D = False
+DO_2D = True
 # QVAR_USE = "qRCFlat"
 # QVAR_USE = "qRCFixed"
 QVAR_USE = "qFlat"
@@ -227,10 +227,10 @@ if __name__ == '__main__':
     leg2.AddEntry(h, str(rc.mHeight) + " run " + rc.mDate + " - " + rc.GetEORtime(), "L")
     h.Draw("hist same E")
   
-  leg2.Draw("same")
+  # leg2.Draw("same")
 
-  c2.SetLogy()
-  c2.Update()
+  # c2.SetLogy()
+  # c2.Update()
 
   ## LP and Bare overlays ##
   c3 = TCanvas("LP vs Bare")

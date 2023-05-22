@@ -98,7 +98,7 @@ if __name__ == '__main__':
 
   ######## Building Full Spectra ########
   binHigh = 80.
-  Nbins = 80.
+  Nbins = 400.
   binWidth = (binHigh - 0.) / Nbins
   hReference = TH1F("hReference", "hReference", int(Nbins), 0., binHigh) # histogram that everything is built off
   hReference.Sumw2(True)
