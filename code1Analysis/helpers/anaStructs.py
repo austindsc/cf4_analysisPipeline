@@ -23,10 +23,10 @@ class SORTING:
 def getDate(runID):
 	return str(runID)[4:4+4]
 
-## ---------------------------------------------------------------- ##
-class PhysicsInstance:
-  def __init__(self):
-    return
+# ## ---------------------------------------------------------------- ##
+# class PhysicsInstance:
+#   def __init__(self):
+#     return
 
 ## ---------------------------------------------------------------- ##
 class RunClass:
@@ -39,6 +39,14 @@ class RunClass:
     self.mChannels = [Channel(i) for i in range(nChan)]
     self.mHeight = 0 #0 means background
     return
+  
+  def setup_forComparison(self):
+    # do a bunch of stuff to get some bins. moving to ROOT agnostic approach
+    # for comparison to data
+    self.mBin_contents = np.array([self.mhCorrSpectrum.GetBinContent(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 1)])
+    self.mBin_edges = np.array([self.mhCorrSpectrum.GetBinLowEdge(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 2)])
+    self.mBinX = self.mBin_edges[:-1]
+    return True
   
   def GetChan(self, index):
     return self.mChannels[index]
@@ -197,4 +205,4 @@ class Channel:
     self.mSpe.print()
     return
 
-## SPE STUFF is in 'getSPE.py' ##
+## SPE STUFF is in 'getSPE.py' ## 
