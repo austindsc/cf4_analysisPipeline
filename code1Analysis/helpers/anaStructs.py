@@ -43,7 +43,8 @@ class RunClass:
   def setup_forComparison(self):
     # do a bunch of stuff to get some bins. moving to ROOT agnostic approach
     # for comparison to data
-    self.mBin_contents = np.array([self.mhCorrSpectrum.GetBinContent(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 1)])
+    self.mBin_rate = np.array([self.mhCorrSpectrum.GetBinContent(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 1)])
+    self.mBin_rawCounts = self.mBin_rate * self.GetRunTime()
     self.mBin_edges = np.array([self.mhCorrSpectrum.GetBinLowEdge(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 2)])
     self.mBinX = self.mBin_edges[:-1]
     return True
