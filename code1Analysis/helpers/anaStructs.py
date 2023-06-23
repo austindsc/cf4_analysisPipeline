@@ -5,6 +5,8 @@ from helpers.getSPE import SpeStuff
 import helpers.getSPE as GETSPE
 # add TF1 objects in here somewhere?
 
+import uproot
+
 ## just some methods for sorting RC objects from global list
 class SORTING:
   ## Got all files ##
@@ -211,15 +213,15 @@ class RunClass:
   #   uprootTree = uproot.from_TTree(self.tt)
   #   pulseTimes = uprootTree["timeMin"]
 
-  def UprootConstructor(self, fpath = self.mFname, treeName = "tt"):
-    fup = uproot.open(fpath)
+  def UprootConstructor(self, treeName = "tt"):
+    fup = uproot.open(self.mFname)
     self.mttUp = fup["tt"]
     return
   
   def BuildCorrectEventTimes(self): # using uproot, returns in ns
-    if not hasattr(self, "mttUP"):
+    if not hasattr(self, "mttUp"):
       print("ERROR: doesn't have uproot TTree")
-      exit(1)
+      sys.exit(1)
     timeConvert = 8 # one clock's ADC value is 8 ns for event
     rollTime =  (2**31)* timeConvert # after hitting 2^32-1, it goes back to time + 2^31 (back to zero, except the last bit is flipped).
     
@@ -231,12 +233,26 @@ class RunClass:
     self.mTrueEvTime = evTime + rollTime * mask
     return self.mTrueEvTime
 
-  def BuildCorrectEventPulseTimes(self, qvar):
+  def BuildCorrectEventPulseTimes(self, qvar, peCut = 0.5): # in ns
+    # data is from my analysis code so times already in ns
+    if not hasattr(self, "mttUp"):
+      print("ERROR: doesn't have uproot TTree")
+      sys.exit(1)
+    # need to call 'BuildCorrectEventTimes() first
     time = np.array(self.mttUp["timeMin"].array())
     qList = np.array(self.mttUp[qvar].array())
     chanPEList = qList/np.array([self.GetSPE(0), self.GetSPE(1), self.GetSPE(2)])
     NPElist = np.sum(chanPEList, axis=1)
-    
+  
+    # filter for PE > 0.5
+    peTimeMask = chanPEList > peCut
+    # print(peTimeMask[0:10])
+    timeMinmasked = time * peTimeMask
+    timeMinmasked[timeMinmasked == 0] = np.inf
+    timeMin_halfPE = np.min(timeMinmasked, axis=1)
+    timeMin_halfPE[timeMin_halfPE == np.inf] = 0 # fix previous step
+    self.mTimeMin_peCut = timeMin_halfPE
+    return timeMin_halfPE + self.mTrueEvTime, NPElist
 
 
 ## ---------------------------------------------------------------- ##
