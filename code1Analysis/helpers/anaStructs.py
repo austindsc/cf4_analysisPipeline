@@ -19,7 +19,6 @@ class SORTING:
     return  [rc for rc in rcList if runID_list.count(rc.id) == 1]
 
 
-#add voltage to RunClass object
 def getDate(runID):
 	return str(runID)[4:4+4]
 
@@ -31,23 +30,37 @@ def getDate(runID):
 ## ---------------------------------------------------------------- ##
 class RunClass:
 
-  def __init__(self, run, ttree, nChan = 3):
+  def __init__(self, run, ttree, nChan = 3, fname = ""):
     self.id = run #run ID (from integer)
     self.tt = ttree
     self.label=""
     self.mDate = getDate(run)
     self.mChannels = [Channel(i) for i in range(nChan)]
     self.mHeight = 0 #0 means background
+    self.mFname = fname
     return
   
   def setup_forComparison(self):
     # do a bunch of stuff to get some bins. moving to ROOT agnostic approach
     # for comparison to data
-    self.mBin_rate = np.array([self.mhCorrSpectrum.GetBinContent(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 1)])
-    self.mBin_rawCounts = self.mBin_rate * self.GetRunTime()
-    self.mBin_edges = np.array([self.mhCorrSpectrum.GetBinLowEdge(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 2)])
-    self.mBinX = self.mBin_edges[:-1]
+    if hasattr(self, "mhCorrSpectrum"):
+      self.mBin_rate = np.array([self.mhCorrSpectrum.GetBinContent(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 1)])
+      self.mBin_rawCounts = self.mBin_rate * self.GetRunTime()
+      self.mBin_edges = np.array([self.mhCorrSpectrum.GetBinLowEdge(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 2)])
+      self.mBinX = self.mBin_edges[:-1]
+    elif hasattr(self, "mhSpectrum"):
+      self.mBin_rate = np.array([self.mhSpectrum.GetBinContent(i) for i in range(1, self.mhSpectrum.GetNbinsX() + 1)])
+      self.mBin_rawCounts = self.mBin_rate * self.GetRunTime()
+      self.mBin_edges = np.array([self.mhSpectrum.GetBinLowEdge(i) for i in range(1, self.mhSpectrum.GetNbinsX() + 2)])
+      self.mBinX = self.mBin_edges[:-1]
     return True
+  
+  def mpl_hist(self, ax, rate = False,  **kwargs):
+    weights = self.mBin_rawCounts
+    if rate == True:
+      weights = self.mBin_rate
+    ax.hist(x = self.mBinX, bins = self.mBin_edges, weights = weights, **kwargs)    
+    return
   
   def GetChan(self, index):
     return self.mChannels[index]
@@ -55,7 +68,7 @@ class RunClass:
   def GetSPE(self, index):
     return self.mChannels[index].mSpe.spe
   
-  def GetRate(self):
+  def GetRate(self): # in Hz
     if hasattr(self, 'mRate'):
       return self.mRate
     else:
@@ -121,6 +134,11 @@ class RunClass:
       self.mHeight = runHeightList[runIDList.index(self.id)]
     return
   
+  def assign_voltage(self, runIDList:list, voltageList:list):
+    if self.id in runIDList:
+      self.mVoltage = voltageList[runIDList.index(self.id)]
+    return
+  
   def GetHeight(self):
     if hasattr(self, 'mHeight'):
       return self.mHeight
@@ -128,9 +146,9 @@ class RunClass:
     return None
 
   ## compute SPE for all channels
-  def computeSPE(self, width = 15, verbose = True, varname = "qFlat", channels = [0, 1, 2]):
+  def computeSPE(self, width = 15, verbose = True, varname = "qFlat", channels = [0, 1, 2], nbins = 100, specialCase = 0):
     for ich in channels:
-      tempSPE = GETSPE.getSPEVval2(self.tt, width, verbose, varname, ich, str(self.id))
+      tempSPE = GETSPE.getSPEVval2(self.tt, width, verbose, varname, ich, str(self.id), nbins, specialCase)
       self.GetChan(ich).addSpe(tempSPE)
     return
 
@@ -187,6 +205,37 @@ class RunClass:
       self.mhTTNE.Fill(deltaTime)
       lastTime = newTime
     return self.mhTTNE
+  
+  # def BuildTTNE_spe(self, histRef):
+  #   self.m2dTTNE = histRef.Clone(histRef.GetName() + "_" + str(self.id))
+  #   uprootTree = uproot.from_TTree(self.tt)
+  #   pulseTimes = uprootTree["timeMin"]
+
+  def UprootConstructor(self, fpath = self.mFname, treeName = "tt"):
+    fup = uproot.open(fpath)
+    self.mttUp = fup["tt"]
+    return
+  
+  def BuildCorrectEventTimes(self): # using uproot, returns in ns
+    if not hasattr(self, "mttUP"):
+      print("ERROR: doesn't have uproot TTree")
+      exit(1)
+    timeConvert = 8 # one clock's ADC value is 8 ns for event
+    rollTime =  (2**31)* timeConvert # after hitting 2^32-1, it goes back to time + 2^31 (back to zero, except the last bit is flipped).
+    
+    evTime = np.array(self.mttUp["evTime"].array()) * timeConvert
+    overIndexes = np.where(evTime[1:] < evTime[:-1])[0] + 1 # where is it larger than the previous entry
+    mask = np.zeros_like(evTime)
+    mask[overIndexes] = 1
+    mask = np.cumsum(mask)
+    self.mTrueEvTime = evTime + rollTime * mask
+    return self.mTrueEvTime
+
+  def BuildCorrectEventPulseTimes(self, qvar):
+    time = np.array(self.mttUp["timeMin"].array())
+    qList = np.array(self.mttUp[qvar].array())
+    chanPEList = qList/np.array([self.GetSPE(0), self.GetSPE(1), self.GetSPE(2)])
+    NPElist = np.sum(chanPEList, axis=1)
     
 
 

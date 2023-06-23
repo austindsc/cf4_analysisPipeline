@@ -38,8 +38,8 @@ defPath = str(os.environ["CF4HOME"])+"/procData/" # where to get everything
 bkgRunPath = "runLists/analysis1/bkgLists/"       # bkg run list files
 
 # bkg runs
-runList_0414 = np.loadtxt(defPath + bkgRunPath+ "date_0414-manyV.txt", dtype=int).tolist()
-voltageList = np.loadtxt(defPath + bkgRunPath+"0414_voltages.txt", dtype=int).tolist()
+runList_0414 = np.loadtxt(defPath + bkgRunPath + "date_0414-manyV.txt", dtype=int).tolist()
+voltageList = np.loadtxt(defPath + bkgRunPath + "0414_voltages.txt", dtype=int).tolist()
 
 # removing last voltage (low stats)
 runList_0414.pop()

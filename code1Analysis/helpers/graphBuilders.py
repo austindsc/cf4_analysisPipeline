@@ -24,7 +24,8 @@ def build_SPEFixed_histogram(rc, varName: str, histRef: ROOT.TH1, peCut = 0.5):
   print("done filling histogram:", histRef.GetName())
   return
 
-# simpler, just adds up already calculated spectra of RC objects
+# simpler, just adds up already calculated spectra of RC objects,
+# scales by total number of entries. Averages rates (not adding them)
 def build_bkgHistogramFast(rcList:list, varName: str, histRef: ROOT.TH1, peCut = 0.5):
   totalTime = 0.0
   for rc in rcList:
@@ -60,28 +61,3 @@ def build_2d_foccupancyHistogram(rc, th2, qvar = "qFixed", peCut = 0.5, norm = T
   
   print("built 2d sharing histogram for run", rc.id)
   return th2
-
-# call build_SPEFixed.., adds them all together.
-# WRONG! N1 + N1 / t1 + t2 != N1/t1 + N1/t2
-def build_bkgHistogram(rcList:list, varName: str, histRef: ROOT.TH1, peCut = 0.5):
-  
-  totalTime = 0.
-  print("THIS FUNCTION 'build_bkgHistogram' IS WRONG")
-  exit(1)
-
-  for rc in rcList:
-    # rc.print()
-    htemp = histRef.Clone(histRef.GetName()+"_time-"+(str(rc.id))[8:])
-    htemp.Reset()
-    build_SPEFixed_histogram(rc = rc, varName=varName, histRef = htemp, peCut = peCut)
-    # htemp.Scale(1/rc.GetRunTime())
-    totalTime += rc.GetRunTime()
-
-    histRef.Add(histRef, htemp, 1., 1.)
-    # build PE histogram from every backgrounds run. then use total ?
-
-  ## do rate scaling at end
-  histRef.Scale(1./totalTime)
-  print("done building bkg histogram for", histRef.GetName())
-  print("total time:", totalTime, "\n")
-  return
