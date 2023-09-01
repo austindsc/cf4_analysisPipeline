@@ -24,11 +24,6 @@ class SORTING:
 def getDate(runID):
 	return str(runID)[4:4+4]
 
-# ## ---------------------------------------------------------------- ##
-# class PhysicsInstance:
-#   def __init__(self):
-#     return
-
 ## ---------------------------------------------------------------- ##
 class RunClass:
 

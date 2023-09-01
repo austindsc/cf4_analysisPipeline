@@ -9,7 +9,7 @@ def myHistReset(hist):
   return
 
 # no type hinting for 'rc' beacuse it causes circular dependency
-def build_SPEFixed_histogram(rc, varName: str, histRef: ROOT.TH1, peCut = 0.5):
+def build_SPEFixed_histogram(rc, varName: str, histRef: ROOT.TH1, peCut = 0.5, verbose = False):
 
   for ev in rc.tt:
     time = getattr(ev, "evTime")
@@ -21,12 +21,13 @@ def build_SPEFixed_histogram(rc, varName: str, histRef: ROOT.TH1, peCut = 0.5):
     if evNPE > peCut:
       histRef.Fill(evNPE)
   
-  print("done filling histogram:", histRef.GetName())
+  if verbose:
+    print("done filling histogram:", histRef.GetName())
   return
 
 # simpler, just adds up already calculated spectra of RC objects,
 # scales by total number of entries. Averages rates (not adding them)
-def build_bkgHistogramFast(rcList:list, varName: str, histRef: ROOT.TH1, peCut = 0.5):
+def build_bkgHistogramFast(rcList:list, varName: str, histRef: ROOT.TH1, peCut = 0.5, verbose = False):
   totalTime = 0.0
   for rc in rcList:
     if not hasattr(rc, 'mhSpectrum'):
@@ -40,8 +41,9 @@ def build_bkgHistogramFast(rcList:list, varName: str, histRef: ROOT.TH1, peCut =
     totalTime += rc.GetRunTime()
 
   ## do rate scaling at end
-  print("done building fast bkg histogram for", histRef.GetName())
-  print("total time:", totalTime, "\n")
+  if verbose:
+    print("done building fast bkg histogram for", histRef.GetName())
+    print("total time:", totalTime, "\n")
   return
 
 ## Divide channel zero by 2
