@@ -10,7 +10,7 @@ from multiprocessing import Pool
 # outDir = "/analysis1_bkg/"
 
 # defRunList = "/procData/runLists/analysis1/bkgLists/date_0414-manyV.txt"
-defRunList = "/procData/runLists/analysis1/CoList_LP_fineCol.txt"
+defRunList = "/procData/runLists/analysis1/CoList_Bare_coarseCol.txt"
 # outDir = "/ana1Co_test/"
 outDir = "/analysis1/"
 
