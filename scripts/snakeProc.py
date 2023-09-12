@@ -9,8 +9,10 @@ from multiprocessing import Pool
 # defRunList = "/procData/runLists/analysis1/bkgLists/date_0411-48V.txt"
 # outDir = "/analysis1_bkg/"
 
-defRunList = "/procData/runLists/analysis1/bkgLists/date_0414-manyV.txt"
-outDir = "/analysis1_bkg/"
+# defRunList = "/procData/runLists/analysis1/bkgLists/date_0414-manyV.txt"
+defRunList = "/procData/runLists/analysis1/CoList_LP_fineCol.txt"
+# outDir = "/ana1Co_test/"
+outDir = "/analysis1/"
 
 def run_process(command):
 	subprocess.run(command, shell = True)
@@ -26,7 +28,7 @@ if __name__ == '__main__':
 
 	runList = np.loadtxt(pp + defRunList, dtype=str, ndmin = 1)
 
-	## First check all files exist ##
+	###### First check all files exist ##
 	allPaths = ["/".join([pp, "rawData", "2022", getMonth(r), r+".bin"]) for r in runList]
 	missingPath = []
 	for path in allPaths:
