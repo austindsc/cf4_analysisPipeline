@@ -19,6 +19,13 @@ class SORTING:
   # select many rc events
   def pickListOfRC(runID_list, rcList):
     return  [rc for rc in rcList if runID_list.count(rc.id) == 1]
+  
+  def findRCbyHeight(h, rcList):
+    # FindRCbyHeight = lambda h, rclist: next((rc for rc in rclist if rc.GetHeight() == h), None)
+    found = next((rc for rc in rcList if rc.GetHeight() == h), None)
+    if found == None:
+      print(f"ERROR, no rc object found for height {h}")
+    return found
 
 
 def getDate(runID):
