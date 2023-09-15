@@ -1,0 +1,44 @@
+{
+  "global_analysis":{
+    // "nbins": 100
+    "binLow": 0.5,
+    "binHigh": 100.5,
+    "nBins": 100,
+    // "chi2LowBin": 1 // not used yet
+  },
+  "mc_analysis":{
+    // "NCA": 0.35, // # first VUV4 paper, 163K
+    "NCA": 0.17, // our SiPM is VUV4-Q-50, second batch according to slope from nEXO paper. 48 V is 4.5V (from noise_extraction.ipynb)
+  },
+  "data_analysis":{
+    "nchan": 3,
+    "qvar": "qFlat",
+    // "qvar": "qFixed",
+    // "qvar": "qRCFixed",
+    // "qvar": "qRCFlat",
+    "peCut": 0.5,
+    "verbose": false,
+    "avg_background": true,
+    "speWidth": 15,
+    
+    "defData_Path":"/procData/",
+    "bkgLists_Path":"/runLists/analysis1/bkgLists/",
+ },
+  "cesiumBareData":{
+    "hScale": 32.0,
+    "heights": [26.5, 28,	30.5,	32,	34.5],
+    "runIDs": [202203101341, 202203101306, 202203101150, 202203101534, 202203101506],
+    "bkgList": "date_0310-48V.txt",
+ },
+  "cesiumLPData":{
+    "hScale": 32.0,
+    "heights": [26, 28.5,	30.5, 32.0],
+    "runIDs": [202204111600,	202204111454,	202204111423, 202204121321],
+    "bkgList": "date_0411-48V.txt",
+  },
+  // "cobaltData":{
+  //   "hScale": 32.0,
+  //   "heights": [26.5, 28,	30.5,	32,	34.5],
+  //   "runs": [202203101341, 202203101306, 202203101150, 202203101534, 202203101506],
+  // }
+}
