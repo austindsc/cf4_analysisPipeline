@@ -1,14 +1,11 @@
-
 print("hi austin! Running makeDataObj")
 
 ## this is a shortened version of the analysis code written in other places.
-# It loads in the data, does PE normalization, rate calculation and bkg subtraction
+# It loads in the data, does PE normalization, rate calculation. leaves bkg subtraction for notebook (to select how its done)
 
-# it produces X output RC objects, whose histograms are useful for comparing to MC
+# it produces X output RC objects, whose histograms are used for comparing to MC
 
-# it is unclear how the mapping from rcObject to MC will be done
-# user inputs must be automated
-  # syke can handle all this in notebook
+# mapping from rc to mc is handled in notebook
 
 ## ROOT stuff
 import ROOT
@@ -28,42 +25,56 @@ ROOT.enableJSVis()
 import os
 import sys
 import numpy as np
+import json5
 
 sys.path.append(os.environ.get("CF4HOME")+"/code1Analysis/")
 sys.path.append(os.environ.get("CF4HOME")+"/code1Analysis/")
+THISPATH = os.environ.get("CF4HOME")+"/comp1/"
 
 ## Atown's stuff
 from helpers.anaStructs import * # includes SORTING class/namespace
 from helpers.getSPE import *
 import helpers.graphBuilders as GB
 
-# ------------- ------------- User Inputs  -------------------------- ##
-## USER INPUTS (kinda bad ngl) ##
-NCHAN = 3
-VERBOSE = False
 
-#QVAR_USE = "qRCFlat"
-# QVAR_USE = "qRCFixed"
-QVAR_USE = "qFlat"
-# QVAR_USE = "qFixed"
-PECUTVALUE = 0.5
+# ------------- ------------- User Inputs  -------------------------- ##
+with open(THISPATH+'config.json', 'r') as file:
+  config = json5.load(file)
+
+############## USER INPUTS ##############
+NCHAN = config.get("data_analysis").get("nchan")
+VERBOSE = config.get("data_analysis").get("verbose")
+
+QVAR_USE = config.get("data_analysis").get("qvar")
+PECUTVALUE = config.get("data_analysis").get("peCut")
+SPEWIDTH = config.get("data_analysis").get("speWidth")
+
+BINLOW = config.get("global_analysis").get("binLow")
+BIGHIGH = config.get("global_analysis").get("binHigh")
+NBINS = config.get("global_analysis").get("nBins")
+binWidth = (BIGHIGH - BINLOW) / NBINS
 
 ## Paths to files, runLists
-defPath = str(os.environ["CF4HOME"])+"/procData/" # where to get everything
-bkgRunPath = "runLists/analysis1/bkgLists/"       # bkg run list files
+defPath = str(os.environ["CF4HOME"])+ config.get("data_analysis").get("defData_Path") # where to get everything
+bkgRunPath = config.get("data_analysis").get("bkgLists_Path")       # bkg run list files
 
 ## -------- physics and bkg runs -------- ##
-runID_cs_bare_heights = [202203101341, 202203101306, 202203101150, 202203101534, 202203101506]
-cs_bare_heights = [26.5, 28,	30.5,	32,	34.5]
+runID_cs_bare_heights = config.get("cesiumBareData").get("runIDs")
+cs_bare_heights = config.get("cesiumBareData").get("heights")
 
-runID_cs_lp_heights = [202204111600,	202204111454,	202204111423, 202204121321]
-cs_lp_heights = [26, 28.5,	30.5, 32]
+runID_cs_lp_heights = config.get("cesiumLPData").get("runIDs")
+cs_lp_heights = config.get("cesiumLPData").get("heights")
 
 physicsList = runID_cs_bare_heights + runID_cs_lp_heights
 
 # bkg runs
-bkgList_0310 = np.loadtxt(defPath + bkgRunPath+ "date_0310-48V.txt", dtype=int).tolist()
-bkgList_0411 = np.loadtxt(defPath + bkgRunPath+ "date_0411-48V.txt", dtype=int).tolist()
+cs_Bare_bkgFile = config.get("cesiumBareData").get("bkgList")
+cs_LP_bkgFile = config.get("cesiumLPData").get("bkgList")
+# print(defPath, bkgRunPath, cs_Bare_bkgFile)
+bkgList_0310 = np.loadtxt(defPath + bkgRunPath + cs_Bare_bkgFile, dtype=int).tolist()
+bkgList_0411 = np.loadtxt(defPath + bkgRunPath + cs_LP_bkgFile, dtype=int).tolist()
+
+############## DONE USER INPUTS ##############
 
 # final inputs into code
 allBkgs = bkgList_0310 + bkgList_0411
@@ -91,7 +102,7 @@ for run in allRuns:
   rcObj.assign_height(runID_cs_bare_heights, cs_bare_heights)
   rcObj.assign_height(runID_cs_lp_heights, cs_lp_heights)
 
-  rcObj.computeSPE(width = 15, verbose=VERBOSE, varname=QVAR_USE, channels = [i for i in range(NCHAN)])
+  rcObj.computeSPE(width = SPEWIDTH, verbose=VERBOSE, varname=QVAR_USE, channels = [i for i in range(NCHAN)])
   rcList.append(rcObj)
 
   for chan in rcObj.mChannels:
@@ -109,11 +120,7 @@ rcl_Bkg_0411 = SORTING.pickListOfRC(bkgList_0411, rcList) # get all RC backgroun
 rcl_cs_lp_heights = SORTING.pickListOfRC(runID_cs_lp_heights, rcList)
 
 ######## ------------- Building Full Spectra -------------########
-binLow = 0.5
-binHigh = 100.5
-Nbins = 100.
-binWidth = (binHigh - binLow) / Nbins
-hReference = TH1F("hReference", "hReference", int(Nbins), binLow, binHigh) # histogram that everything is built off
+hReference = TH1F("hReference", "hReference", int(NBINS), BINLOW, BIGHIGH) # histogram that everything is built off
 hReference.Sumw2(True)
 
 # building all SPE spectra

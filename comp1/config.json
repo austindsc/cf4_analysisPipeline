@@ -3,7 +3,10 @@
     // "nbins": 100
     "binLow": 0.5,
     "binHigh": 100.5,
-    "nBins": 100,
+    "nBins": 50,
+
+    "range_lowBin": 0,
+    "verbose": 0
     // "chi2LowBin": 1 // not used yet
   },
   "mc_analysis":{
@@ -11,6 +14,8 @@
     "NCA": 0.17, // our SiPM is VUV4-Q-50, second batch according to slope from nEXO paper. 48 V is 4.5V (from noise_extraction.ipynb)
   },
   "data_analysis":{
+    "avg_background": true,
+
     "nchan": 3,
     "qvar": "qFlat",
     // "qvar": "qFixed",
@@ -18,7 +23,6 @@
     // "qvar": "qRCFlat",
     "peCut": 0.5,
     "verbose": false,
-    "avg_background": true,
     "speWidth": 15,
     
     "defData_Path":"/procData/",
@@ -36,9 +40,16 @@
     "runIDs": [202204111600,	202204111454,	202204111423, 202204121321],
     "bkgList": "date_0411-48V.txt",
   },
-  // "cobaltData":{
-  //   "hScale": 32.0,
-  //   "heights": [26.5, 28,	30.5,	32,	34.5],
-  //   "runs": [202203101341, 202203101306, 202203101150, 202203101534, 202203101506],
-  // }
+  "cobaltBareData":{
+    "hScale": 32.0,
+    "heights": [28.0, 30.5, 33.0],
+    "runIDs": [202203031411, 202203031135, 202203031512],
+    "bkgList": "date_0303-48V.txt",
+  },
+  "cobaltLPData":{
+    "hScale": 32.0,
+    "heights": [26, 28.5,	30.5],
+    "runIDs": [202204131513,	202204131317,	202204131122],
+    "bkgList": "date_0413-48V.txt",
+  }
 }
