@@ -1,11 +1,13 @@
-print("hi austin! Running makeDataObj")
+print("Running makeDataObj_cs")
 
 ## this is a shortened version of the analysis code written in other places.
-# It loads in the data, does PE normalization, rate calculation. leaves bkg subtraction for notebook (to select how its done)
+# It loads in the data, does PE normalization, rate calculation and bkg subtraction
 
-# it produces X output RC objects, whose histograms are used for comparing to MC
+# it produces X output RC objects, whose histograms are useful for comparing to MC
 
-# mapping from rc to mc is handled in notebook
+# it is unclear how the mapping from rcObject to MC will be done
+# user inputs must be automated
+  # syke can handle all this in notebook
 
 ## ROOT stuff
 import ROOT
@@ -133,6 +135,14 @@ GB.build_bkgHistogramFast(rcl_Bkg_0310, QVAR_USE, hNPE_bkg_0310, PECUTVALUE) # t
 
 hNPE_bkg_0411 = hReference.Clone("hNPE_bkg_0411") # histogram
 GB.build_bkgHistogramFast(rcl_Bkg_0411, QVAR_USE, hNPE_bkg_0411, PECUTVALUE) # this calls build_SPEFixedHistogram iteratively, does rate calculation...
+
+for rc in rcl_cs_bare_heights:
+  rc.FindClosestRC(rcl_Bkg_0310)
+
+for rc in rcl_cs_lp_heights:
+  rc.FindClosestRC(rcl_Bkg_0411)
+
+RAN_CS = True
 
 ## ------------- Get and build the bkg corrected spectra ------------- ##
 # print("\n Bare:")

@@ -3,7 +3,7 @@
     // "nbins": 100
     "binLow": 0.5,
     "binHigh": 100.5,
-    "nBins": 50,
+    "nBins": 100,
 
     "range_lowBin": 0, // where to start comparison
     "verbose": 0
