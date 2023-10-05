@@ -89,7 +89,7 @@ rcList = [] ## everything from here
 fList = []
 
 speList = []
-chi2list = []
+chi2List = []
 
 # loading data and SPE analysis
 # everything is in rcList
@@ -110,7 +110,7 @@ for run in allRuns:
   for chan in rcObj.mChannels:
     # print(chan.mSpe.chi2)
     speList.append(chan.mSpe.spe)
-    chi2list.append(chan.mSpe.chi2)
+    chi2List.append(chan.mSpe.chi2)
 ROOT.gErrorIgnoreLevel = ROOT.kUnset
 print("Done Calculating SPE")
 
@@ -143,6 +143,7 @@ for rc in rcl_cs_lp_heights:
   rc.FindClosestRC(rcl_Bkg_0411)
 
 RAN_CS = True
+dkdkdkdkdk = 69.420
 
 ## ------------- Get and build the bkg corrected spectra ------------- ##
 # print("\n Bare:")

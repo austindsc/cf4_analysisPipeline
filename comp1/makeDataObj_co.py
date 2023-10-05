@@ -87,8 +87,8 @@ ROOT.gErrorIgnoreLevel = ROOT.kError
 rcList = [] ## everything from here
 fList = []
 
-speList = []
-chi2list = []
+speListCo = []
+chi2ListCo = []
 
 # loading data and SPE analysis
 # everything is in rcList
@@ -108,8 +108,8 @@ for run in allRuns:
 
   for chan in rcObj.mChannels:
     # print(chan.mSpe.chi2)
-    speList.append(chan.mSpe.spe)
-    chi2list.append(chan.mSpe.chi2)
+    speListCo.append(chan.mSpe.spe)
+    chi2ListCo.append(chan.mSpe.chi2)
 ROOT.gErrorIgnoreLevel = ROOT.kUnset
 print("Done Calculating SPE")
 
@@ -137,6 +137,8 @@ GB.build_bkgHistogramFast(rcl_Bkg_0413, QVAR_USE, hNPE_bkg_0413, PECUTVALUE) # t
 
 
 RAN_CO = True
+
+jjjjjj = 69.420
 ## ------------- Get and build the bkg corrected spectra ------------- ##
 # print("\n Bare:")
 # for rc in rcl_co_bare_heights:

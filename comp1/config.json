@@ -5,7 +5,7 @@
     "binHigh": 100.5,
     "nBins": 100,
 
-    "range_lowBin": 0, // where to start comparison
+    "range_lowBin": 1, // where to start comparison
     "verbose": 0
     // "chi2LowBin": 1 // not used yet
   },
