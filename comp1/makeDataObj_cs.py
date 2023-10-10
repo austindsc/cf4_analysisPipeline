@@ -143,7 +143,6 @@ for rc in rcl_cs_lp_heights:
   rc.FindClosestRC(rcl_Bkg_0411)
 
 RAN_CS = True
-dkdkdkdkdk = 69.420
 
 ## ------------- Get and build the bkg corrected spectra ------------- ##
 # print("\n Bare:")

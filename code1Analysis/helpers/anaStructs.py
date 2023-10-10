@@ -189,6 +189,9 @@ class RunClass:
     hCorr = h.Clone(h.GetName()+"_corrected")
     hCorr.Add(histBkg, -1)
     self.mhCorrSpectrum = hCorr
+
+    self.mCorrBkgRate = histBkg.Integral() # store the rate bkg data
+    self.Ncorr = hCorr.GetEntries()
     return hCorr
   
   ## time to next event histogram

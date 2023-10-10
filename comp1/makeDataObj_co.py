@@ -138,7 +138,6 @@ GB.build_bkgHistogramFast(rcl_Bkg_0413, QVAR_USE, hNPE_bkg_0413, PECUTVALUE) # t
 
 RAN_CO = True
 
-jjjjjj = 69.420
 ## ------------- Get and build the bkg corrected spectra ------------- ##
 # print("\n Bare:")
 # for rc in rcl_co_bare_heights:

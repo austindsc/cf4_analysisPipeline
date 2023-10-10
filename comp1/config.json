@@ -3,11 +3,22 @@
     // "nbins": 100
     "binLow": 0.5,
     "binHigh": 100.5,
-    "nBins": 100,
+    "nBins": 50,
 
-    "range_lowBin": 1, // where to start comparison
-    "verbose": 0
-    // "chi2LowBin": 1 // not used yet
+    "range_lowBin": 0, // where to start comparison
+    "verbose": 0,
+    // mc:data mapping for comparison
+    "csBareMap":{
+      "0.0" : 32.0,
+      "1.5" : 30.5,
+      "4.0" : 28,
+      "5.5" : 26.5
+    },
+    "coBareMap": {
+      "-1.0" : 33.0,
+      "1.5" : 30.5,
+      "4.0" : 28
+    }
   },
   "mc_analysis":{
     // "NCA": 0.35, // # first VUV4 paper, 163K
@@ -42,7 +53,7 @@
   },
   "cobaltBareData":{
     "hScale": 32.0,
-    "heights": [28.0, 30.5, 33.0],
+    "heights": [28.0, 30.5, 33.0], // it is actually 33cm on the last one
     "runIDs": [202203031411, 202203031135, 202203031512],
     "bkgList": "date_0303-48V.txt",
   },
