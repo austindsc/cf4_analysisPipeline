@@ -112,7 +112,7 @@ for run in allRuns:
     speList.append(chan.mSpe.spe)
     chi2List.append(chan.mSpe.chi2)
 ROOT.gErrorIgnoreLevel = ROOT.kUnset
-print("Done Calculating SPE")
+print("\tDone Calculating SPE")
 
 #### ------------- Sorting RC objects ------------- ####
 rcl_Bkg_0310 = SORTING.pickListOfRC(bkgList_0310, rcList) # get all RC background objects

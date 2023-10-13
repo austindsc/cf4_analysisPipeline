@@ -3,7 +3,7 @@
     // "nbins": 100
     "binLow": 0.5,
     "binHigh": 100.5,
-    "nBins": 50,
+    "nBins": 100,
 
     "range_lowBin": 0, // where to start comparison
     "verbose": 0,
@@ -25,7 +25,7 @@
     "NCA": 0.17, // our SiPM is VUV4-Q-50, second batch according to slope from nEXO paper. 48 V is 4.5V (from noise_extraction.ipynb)
   },
   "data_analysis":{
-    "avg_background": true, // xx affects result
+    "avg_background": false, // xx affects result
 
     "nchan": 3, // don't change this
     "qvar": "qFlat",
