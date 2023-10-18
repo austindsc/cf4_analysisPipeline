@@ -22,52 +22,55 @@ class MCdataSet(object):
     # open everything as FullMCRun
     # sort by mRunPars
 
-    # entire trackers
+    # all runs in one array
     self.mAllRuns = [FullMCRun(macName = f[:-len(".root")], verbose = verbose) for f in files]
-    self.buildOutDataArrays()
 
-    # gamma Map
-    # self.gammaMap = {"csb": self.mCsBareList, "cslp": self.mCsLpList, "cob": self.mCoBareList, "colp": self.mCoLPList}
+    # gamma Map and sorting
+    self.buildOutDataArrays()
     return
   
-  def popHeights(self, csBare = [], csLP = [], coBare = [], coLP = []):
-    self.mCsBareList = [mc for mc in self.mCsBareList if mc.mRunPars.gammaHeight not in csBare]
-    self.mCoBareList = [mc for mc in self.mCoBareList if mc.mRunPars.gammaHeight not in coBare]
-    return
-  
-  # call this after changing something from mAllRuns. this resets matrices with everything from mAllRuns
-  # need to 'delete' the item from mAllRuns or something
+  ########## Management ##########
+  # this builds or resets the arrays that sort all MC stuff from mAllRuns
   def buildOutDataArrays(self):
-    ## loading (Bare) Cs data
+
+    ## sorting Cs data
     self.mCsBareList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == False and mc.mRunPars.gammaSrc == "Cs137")]
     self.mCsBareList = sorted(self.mCsBareList, key=lambda rc: rc.mRunPars.gammaHeight) # sorting
-    # [print(type(mc.mRunPars.gammaHeight)) for mc in self.mCsBareList]
-    self.mCsBareRateScaling = 0.1 # float
-    
     self.mCsLpList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == True and mc.mRunPars.gammaSrc == "Cs137")]
     self.mCsLpList = sorted(self.mCsLpList, key=lambda rc: rc.mRunPars.gammaHeight) # sorting
+    # [print(type(mc.mRunPars.gammaHeight)) for mc in self.mCsBareList]
 
-    ## Co data
+    ## sorting Co data
     self.mCoBareList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == False and mc.mRunPars.gammaSrc == "Co57")]
     self.mCoBareList = sorted(self.mCoBareList, key = lambda rc: rc.mRunPars.gammaHeight)
     self.mCoLPList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == True and mc.mRunPars.gammaSrc == "Co57")]
     self.mCoLPList = sorted(self.mCoLPList, key = lambda rc: rc.mRunPars.gammaHeight)
-    self.mCoBareRateScaling = 0.1 #float
 
-    # gamma Map
     self.gammaMap = {"csb": self.mCsBareList, "cslp": self.mCsLpList, "cob": self.mCoBareList, "colp": self.mCoLPList}
 
     ## other data\
     return
   
+  # remove a height from the data lists. Not needed with new mapping strategy
+  def popHeights(self, csBare = [], coBare = [], csLP = [], coLP = []):
+    self.mCsBareList = [mc for mc in self.mCsBareList if mc.mRunPars.gammaHeight not in csBare]
+    self.mCoBareList = [mc for mc in self.mCoBareList if mc.mRunPars.gammaHeight not in coBare]
+    return
+  
+  # important for searching in self for given mc run
   def findRunByHeight(self, height, key = "csb"):
     found = next((mc for mc in self.gammaMap.get(key) if mc.mRunPars.gammaHeight == height), None)
     if found == None:
-      print(f"no mc object found in mc {key} with height {height}")
+      print(f"no mc object found in mc {key}:{self.gammaMap.get(key)} with height {height}")
     return found
 
+  ########## Corrections and setup ##########
   def doCAcorrection_BinomialMC(self, nCA):
     done = [mc.doCAcorrection_BinomialMC(nCA) for mc in self.mAllRuns]
+    return
+  
+  def doCAcorrection_GeoMC(self, nCA):
+    done = [mc.doCAcorrection_GeometricMC(nCA) for mc in self.mAllRuns]
     return
   
   # for "mNPE", "mNPE_corr", call one of the doCAcorrection first
@@ -79,7 +82,7 @@ class MCdataSet(object):
   #   return all(dict1.get(key) == dict2.get(key) for key in dict1.keys())
 
   def print(self):
-    print("---- mcDataSet.print() ----")
+    print("\n---- mcDataSet.print() ----")
     print(self.fpath, "\n")
     print("self.mCsBareList[0]", self.mCsBareList[0].mPhysPars)
     print("self.mCsBareList[0]", self.mCsBareList[0].mRunPars)

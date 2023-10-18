@@ -12,7 +12,7 @@ class RealDataSet(object):
 
     return
 
-  def print(self, hSub = 0, verbose = 0):
+  def print(self, hScale = 0, verbose = 0):
     
     print("\n---- RealDataSet print() ----") if verbose > 0 else None
     if verbose > 1:
@@ -22,14 +22,13 @@ class RealDataSet(object):
       print("\nmCoBare[0] print()", end = "")
       self.mCoBare[0].print()
     
-    if verbose > 0:
+    if verbose > 0: # sketchily print out a table
       wid = 6
       print("    h         Nraw        Nsub     rate (Hz)    subRate (Hz)")
       print("csBare:")
-      [print(f"| {hSub - rc.mHeight: > {wid}.{1}f} |  {rc.tt.GetEntries():>{wid}.{1}e}  |  {rc.GetCorrSpectrum().GetEntries():>{wid}.{2}e}  |  {rc.GetRate():>{wid}.{2}f} | {rc.mCorrBkgRate:>{wid}.{2}f}") for rc in self.mCsBare]
-
+      [print(f"| {hScale - rc.mHeight: > {wid}.{1}f} |  {rc.tt.GetEntries():>{wid}.{1}e}  |  {rc.GetCorrSpectrum().GetEntries():>{wid}.{2}e}  |  {rc.GetRate():>{wid}.{2}f} | {rc.mCorrBkgRate:>{wid}.{2}f}") for rc in self.mCsBare]
       print("\ncoBare:")
-      [print(f"| {hSub - rc.mHeight: > {wid}.{1}f} |  {rc.tt.GetEntries():>{wid}.{1}e}  |  {rc.GetCorrSpectrum().GetEntries():>{wid}.{2}e}  |  {rc.GetRate():>{wid}.{2}f} | {rc.mCorrBkgRate:>{wid}.{2}f}") for rc in self.mCoBare]
+      [print(f"| {hScale - rc.mHeight: > {wid}.{1}f} |  {rc.tt.GetEntries():>{wid}.{1}e}  |  {rc.GetCorrSpectrum().GetEntries():>{wid}.{2}e}  |  {rc.GetRate():>{wid}.{2}f} | {rc.mCorrBkgRate:>{wid}.{2}f}") for rc in self.mCoBare]
 
     return
   

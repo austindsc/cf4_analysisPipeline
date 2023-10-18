@@ -3,6 +3,8 @@ import sys
 import scipy.optimize as spOpt
 import json5
 
+import numpy as np
+
 ##  tools for real data
 sys.path.append(os.environ.get("CF4HOME")+"/code1Analysis/")
 sys.path.append(os.environ.get("CF4HOME"))
@@ -18,6 +20,7 @@ class rcMCpair(object):
     self.height = mc.mRunPars.gammaHeight
     self.countLimit = 10
     self.ndof = -1
+    self.Nbeam = mc.Nbeam
     return
   
   def SetBinRanges(self, firstBin = 1, verbose = 0):
@@ -34,25 +37,29 @@ class rcMCpair(object):
       self.lastBin -= 1
 
     self.ndof = self.lastBin - self.firstBin
-    
-    if mcLastBin < dataLastBin:
 
-      # print("YOO data limited in:", self.mc.mRunPars.fname) if verbose else None
-      print("   mc/data lastBin count = ", self.mc.mRaw_Counts[self.lastBin+1], self.rc.mBin_rawCounts[self.lastBin+1]) if verbose else None
-      return 0
+    if mcLastBin < dataLastBin:
+      print("YOO data limited in:", self.mc.mRunPars.fname) if verbose else None
+      print("   mc : data lastBin count = ", self.mc.mRaw_Counts[self.lastBin+1], " : ", self.rc.mBin_rawCounts[self.lastBin+1]) if verbose else None
+      return self.mc.mRunPars.fname
     return 1
 
   ##----------##
   def GuessScaling(self): # this is for raw counts
     # analytic scaling
-    dataArea = sum(self.rc.mBin_rawCounts[self.firstBin:self.lastBin]) #xx
-    mcAreaByRuntime = np.sum(self.mc.mRaw_Counts[self.firstBin:self.lastBin]) * self.rc.GetRunTime()
+    dataArea = sum(self.rc.mBin_rawCounts[self.firstBin:self.lastBin])
+    # xx
+    mcAreaByRuntime = np.sum(self.mc.mRaw_Counts[self.firstBin:self.lastBin]) * self.rc.GetRunTime() / self.Nbeam
+
     self.mcScale = dataArea / mcAreaByRuntime
     return self.mcScale # this is now proportional to the runtime. has units 1/time to turn MC to rate
 
+  # def GetMCSpectrum(scaling = scaling, bin0 = 0, ):
+  #   return self.mc.mRaw_Counts * scaling * self.rc.GetRunTime() / self.mc.Nbeam
+
   def GetMaxBin(self, scaling, rawCounts = True):
     if rawCounts:
-      a = max(np.maximum(self.rc.mBin_rawCounts, scaling * self.mc.mRaw_Counts * self.rc.GetRunTime()))
+      a = max(np.maximum(self.rc.mBin_rawCounts, scaling * self.mc.mRaw_Counts * self.rc.GetRunTime() / self.Nbeam))
       return a
     else:
       a = max(np.maximum(self.rc.mBin_rawCounts / self.rc.GetRunTime(), scaling * self.mc.mRaw_Counts ))
@@ -68,8 +75,8 @@ class rcMCpair(object):
       print("something wrong with scaling value in pair.computeChi2_reduced")
       return -1
   
-    mcBins = scaling * (self.mc.mRaw_Counts[self.firstBin:self.lastBin]) * self.rc.GetRunTime()
-    dataBins = self.rc.mBin_rawCounts[self.firstBin:self.lastBin]  #/ self.rc.GetRunTime()
+    mcBins = scaling * (self.mc.mRaw_Counts[self.firstBin:self.lastBin]) * self.rc.GetRunTime() / self.Nbeam
+    dataBins = self.rc.mBin_rawCounts[self.firstBin:self.lastBin]
     self.chi2 = np.sum((dataBins - mcBins)**2/mcBins)
     self.nbinsUsed = self.lastBin - self.firstBin
     self.redChi2 = self.chi2/self.ndof
@@ -187,7 +194,7 @@ class Comparator(object):
 
     self.mMCDataSet.print() if mcVerb else None
 
-    self.mRealData.print(verbose = dataVerb, hSub = self.hScale)
+    self.mRealData.print(verbose = dataVerb, hScale = self.hScale)
 
     print("\n---- COMPARATOR.print() ----")
     print("heights in pairMaps:")
@@ -202,10 +209,13 @@ class Comparator(object):
   def SetBinRanges(self, firstBin = 1, verbose = 0):
     a = [rcmc.SetBinRanges(firstBin = firstBin, verbose = verbose) for rcmc in self.csBareMap] # Cs
     b = [rcmc.SetBinRanges(firstBin = firstBin, verbose = verbose) for rcmc in self.coBareMap] # Co
-    if not all(a+b):
-      # print("MC statistics limited in:")
-      print(self.mMCDataSet.fpath)
-    return
+
+    finalRes = a + b
+    runStrings = [run for run in finalRes if isinstance(run, str)]
+    if len(runStrings) > 0:
+      print("mc stats limited in", runStrings) if verbose > 1 else None
+      return runStrings
+    return None
   
   def checkNDOF(self):
     return all(p.ndof != 0 for p in self.csBareMap + self.coBareMap)
@@ -287,7 +297,7 @@ class Comparator(object):
     
     # run again to store min values
     if result.success == True:
-      funToUse(result.x[0]) # reset the internals that track nuisance params
+      funToUse(result.x[0]) # reset the internals that track nuisance params (resets self.coBareNuis to track results)
       if verbose == 1:
         print(result)
       return 1, result
