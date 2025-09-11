@@ -37,7 +37,8 @@ def getSPEVval2(tt, width = 10., verbose = False, varName = "qFixed", channel = 
   hist.GetXaxis().SetTitle("Charge, adc x ns")
   hist.GetYaxis().SetTitle("Counts")
   # hist.GetXaxis().SetRange(int(100/5), 200)
-
+  
+#   print(type(tt))
   tt.Draw(drawCommand, cutCommand, dopt)
 
   ## First peak as maximum

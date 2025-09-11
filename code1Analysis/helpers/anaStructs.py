@@ -1,5 +1,56 @@
+"""
+anaStructs.py - Data Analysis Structures for CF4 SBC Analysis
+
+This module provides the core data structures for analyzing CF4 Super-heated Bubble Chamber data.
+It handles ROOT files, event processing, SPE (Single Photo-Electron) analysis, and spectral analysis.
+
+=== CLASSES OVERVIEW ===
+
+1. SORTING (Static Class)
+   - Utility methods for finding and filtering RunClass objects from lists
+   - pickSingleRC(runID, rcList): Get single run by ID
+   - pickListOfRC(runID_list, rcList): Get multiple runs by ID list  
+   - findRCbyHeight(h, rcList): Find run by height parameter
+
+2. RunClass (Main Analysis Class)
+   - Represents a single data run with associated TTree and analysis results
+   - Handles event timing, rate calculations, SPE analysis, and spectrum building
+   
+   Key Methods:
+   - __init__(run, ttree, nChan=3, fname=""): Initialize with run ID and ROOT TTree
+   - computeSPE(): Calculate Single Photo-Electron values for all channels
+   - BuildSpectrum(): Create PE (Photo-Electron) vs rate spectrum
+   - BuildCorrSpectrum(): Create background-subtracted spectrum
+   - GetRate(), GetRunTime(): Calculate event rates and run duration
+   - UprootConstructor(): Set up uproot interface for numpy-friendly analysis
+   - GetSPEValues(), GetSPEArray(): Convert charge to SPE-reduced values
+   - BuildCorrectEventTimes(): Handle ADC time rollover corrections
+   - setup_forComparison(): Prepare data for matplotlib plotting
+
+3. Channel (Per-Channel Data)
+   - Represents individual PMT channel data
+   - Stores SPE calibration information
+   - addSpe(): Add SPE calibration data
+   - print(): Display channel information
+
+=== TYPICAL WORKFLOW ===
+1. Create RunClass objects from ROOT files
+2. Compute SPE calibrations with computeSPE()
+3. Build event spectra with BuildSpectrum()
+4. Perform background subtraction with BuildCorrSpectrum()
+5. Use SORTING methods to organize and filter runs
+6. Export to numpy arrays for further analysis
+
+=== DEPENDENCIES ===
+- ROOT/PyROOT for histogram and tree handling
+- uproot for numpy-friendly ROOT file access
+- helpers.graphBuilders for spectrum construction
+- helpers.getSPE for SPE calibration algorithms
+"""
+
 import copy
 import numpy as np
+import sys
 import helpers.graphBuilders as GB
 from helpers.getSPE import SpeStuff
 import helpers.getSPE as GETSPE
@@ -45,7 +96,7 @@ class RunClass:
     return
   
   def setup_forComparison(self):
-    # do a bunch of stuff to get some bins. moving to ROOT agnostic approach
+    # do a bunch of stuff to get some bins. moving to ROOT agnostic approach (but requires root spectrum)
     # for comparison to data
     if hasattr(self, "mhCorrSpectrum"):
       self.mBin_rate = np.array([self.mhCorrSpectrum.GetBinContent(i) for i in range(1, self.mhCorrSpectrum.GetNbinsX() + 1)])
@@ -218,11 +269,23 @@ class RunClass:
   #   uprootTree = uproot.from_TTree(self.tt)
   #   pulseTimes = uprootTree["timeMin"]
 
+###### methods below here are root agnostic ######
   def UprootConstructor(self, treeName = "tt"):
     fup = uproot.open(self.mFname)
     self.mttUp = fup["tt"]
     return
-  
+
+  ## convert tree charge values to SPE reduced values
+  def GetSPEValues(self, qvar):
+      self.npQPE_Arr = self.mttUp[qvar].array(library="np")/np.array([self.GetSPE(0), self.GetSPE(1), self.GetSPE(2)])
+      return self.npQPE_Arr
+
+  # this is the sum of SPE values for all channels
+  def GetSPEArray(self, qvar="qRCFlat"):
+      if not hasattr(self, "npQPE_Arr"):
+          self.GetSPEValues(qvar)
+      return np.sum(self.npQPE_Arr, axis=1)
+
   def BuildCorrectEventTimes(self): # using uproot, returns in ns
     if not hasattr(self, "mttUp"):
       print("ERROR: doesn't have uproot TTree")
@@ -259,6 +322,45 @@ class RunClass:
     self.mTimeMin_peCut = timeMin_halfPE
     return timeMin_halfPE + self.mTrueEvTime, NPElist
 
+## methods adding since starting alpha analysis ##
+
+
+
+  def setup_forComparison_np(self, binArgs, qvar="qFlat", peCut=None):
+    """
+    ROOT-agnostic setup for comparison using numpy arrays directly.
+    Creates same members as setup_forComparison() but bypasses mhSpectrum.
+    
+    Args:
+        binArgs: Dictionary with binning arguments
+                 {'nbins': int, 'low': float, 'high': float} or
+                 {'edges': np.array} for custom bin edges
+        qvar: Charge variable name (default "qFlat")
+        peCut: PE threshold cut (default 0.5)
+    """
+    # Get PE array using existing method
+    pe_array = self.GetSPEArray(qvar)
+    
+    # Apply PE cut
+    pe_filtered = pe_array[pe_array >= peCut] if peCut is not None else pe_array
+
+    # Create bin edges
+    if 'edges' in binArgs:
+      self.mBin_edges = np.array(binArgs['edges'])
+    else:
+      nbins = binArgs.get('nbins', 40)
+      low = binArgs.get('low', -0.5)
+      high = binArgs.get('high', 39.5)
+      self.mBin_edges = np.linspace(low, high, nbins + 1)
+    
+    # Create histogram
+    self.mBin_rawCounts, _ = np.histogram(pe_filtered, bins=self.mBin_edges)
+    
+    # Calculate rates and bin centers
+    self.mBin_rate = self.mBin_rawCounts / self.GetRunTime()
+    self.mBinX = self.mBin_edges[:-1] + np.diff(self.mBin_edges) / 2
+    
+    return True
 
 ## ---------------------------------------------------------------- ##
 class Channel:

@@ -47,9 +47,9 @@ class rcMCpair(object):
   ##----------##
   def GuessScaling(self): # this is for raw counts
     # analytic scaling
-    dataArea = sum(self.rc.mBin_rawCounts[self.firstBin:self.lastBin])
+    dataArea = sum(self.rc.mBin_rawCounts[self.firstBin:self.lastBin]) # counts
     # xx
-    mcAreaByRuntime = np.sum(self.mc.mRaw_Counts[self.firstBin:self.lastBin]) * self.rc.GetRunTime() / self.Nbeam
+    mcAreaByRuntime = np.sum(self.mc.mRaw_Counts[self.firstBin:self.lastBin]) * self.rc.GetRunTime() / self.Nbeam # counts x time / N
 
     self.mcScale = dataArea / mcAreaByRuntime
     return self.mcScale # this is now proportional to the runtime. has units 1/time to turn MC to rate

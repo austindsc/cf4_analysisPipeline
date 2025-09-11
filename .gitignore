@@ -1,14 +1,70 @@
 
+# Data directories (large datasets)
+rawData/
+procData/
+
+# Generated and output files
 *.out
 *.root
-*.DS_store
-*__pycache__*
+*.log
+*.err
 
-SBCcode
-zold*
+# Python cache and bytecode
+__pycache__/
+*/__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
 
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
+# macOS system files
+.DS_Store
+*/.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+
+# SBC specific ignores
+SBCcode/
+zold*/
+*/zold*/
+
+# VIEW files (analysis outputs)
 procData/VIEW*
-SBCcode/*
 
-rawData/*
-procData/*
+# Temporary and backup files
+*~
+*.tmp
+*.bak
+*.swp
+*.swo
+.#*
+#*#
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# C++ compiled objects
+*.o
+*.so
+*.dylib
+*.exe
+*.app
+
+# Analysis outputs and temporary data
+*.csv
+*.dat
+*.txt
+
+# Hold/temporary directories
+*/temp/
+*/tmp/
+*/hold*/

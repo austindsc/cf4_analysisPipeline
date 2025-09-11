@@ -91,8 +91,9 @@ SAMPLING = 16.
 BLINEEND = 500.
 NULLVAL = 0.0
 SKIPENDTIME = 500.
-defRun = 202203101150
-defDir = "2022/03"
+# defRun = 202203101150
+defRun = 202205201136
+defDir = "2022/05"
 # defDir = "caenTesting"
 
 
@@ -117,7 +118,7 @@ if __name__ == "__main__":
 	
 	# files and paths
 	raw_directory = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/rawData/"+args.inDir
-	savePath = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/"+args.outDir+"/"
+	savePath = "/Users/austindestcroix/Desktop/school_holders/projects/sbc/CF4/procData/analysis2/"+args.outDir+"/"
 	if not os.path.exists(savePath):
 		print("savePath doesn't exist")
 		print(savePath)
@@ -130,10 +131,10 @@ if __name__ == "__main__":
 	
 	outName = str(savePath + "npv1_"+ fname +".root")
 	if args.outName != None:
-		outName = str(savePath + "npv1_"+ args.outName + "_" + fname + ".root")
+		outName = str(savePath + "npv2_"+ args.outName + "_" + fname + ".root")
 	
 	if args.live == True or (args.N > 0 and args.N < 900): # avoid overwriting big files, if user is viewing/testing
-		outName = savePath + "LIVE_npv1_" + str(args.run) + ".root"
+		outName = savePath + "LIVE_npv2_" + str(args.run) + ".root"
 
 
 	### Used to open root file here

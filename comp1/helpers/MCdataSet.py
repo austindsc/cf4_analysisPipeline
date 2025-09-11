@@ -13,7 +13,7 @@ from Batch.helpers.G4_macHelpers import *
 # this is all the files in a single folder
 class MCdataSet(object):
 
-  def __init__(self, folderPath: str, verbose = 1):
+  def __init__(self, folderPath: str, verbose = 1, buildOptions = "all"):
     
     files = FG.get_all_root_files(folderPath)
     self.fpath = folderPath
@@ -22,10 +22,14 @@ class MCdataSet(object):
     # open everything as FullMCRun
     # sort by mRunPars
 
-    # all runs in one array
+    # loading all runs
     self.mAllRuns = [FullMCRun(macName = f[:-len(".root")], verbose = verbose) for f in files]
 
     # gamma Map and sorting
+    self.dataOption = buildOptions
+    self.viableOptions = ["all", "Cs", "Co"]
+    
+    ## analyzing data
     self.buildOutDataArrays()
     return
   
@@ -34,19 +38,23 @@ class MCdataSet(object):
   def buildOutDataArrays(self):
 
     ## sorting Cs data
-    self.mCsBareList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == False and mc.mRunPars.gammaSrc == "Cs137")]
-    self.mCsBareList = sorted(self.mCsBareList, key=lambda rc: rc.mRunPars.gammaHeight) # sorting
-    self.mCsLpList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == True and mc.mRunPars.gammaSrc == "Cs137")]
-    self.mCsLpList = sorted(self.mCsLpList, key=lambda rc: rc.mRunPars.gammaHeight) # sorting
+    if self.dataOption == "all" or self.dataOption == "Cs":
+        self.mCsBareList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == False and mc.mRunPars.gammaSrc == "Cs137")]
+        self.mCsBareList = sorted(self.mCsBareList, key=lambda rc: rc.mRunPars.gammaHeight) # sorting
+        self.mCsLpList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == True and mc.mRunPars.gammaSrc == "Cs137")]
+        self.mCsLpList = sorted(self.mCsLpList, key=lambda rc: rc.mRunPars.gammaHeight) # sorting
+        
+        self.gammaMap = {"csb": self.mCsBareList, "cslp": self.mCsLpList}
     # [print(type(mc.mRunPars.gammaHeight)) for mc in self.mCsBareList]
 
     ## sorting Co data
-    self.mCoBareList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == False and mc.mRunPars.gammaSrc == "Co57")]
-    self.mCoBareList = sorted(self.mCoBareList, key = lambda rc: rc.mRunPars.gammaHeight)
-    self.mCoLPList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == True and mc.mRunPars.gammaSrc == "Co57")]
-    self.mCoLPList = sorted(self.mCoLPList, key = lambda rc: rc.mRunPars.gammaHeight)
+    if self.dataOption == "all" or self.dataOption == "Co":
+        self.mCoBareList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == False and mc.mRunPars.gammaSrc == "Co57")]
+        self.mCoBareList = sorted(self.mCoBareList, key = lambda rc: rc.mRunPars.gammaHeight)
+        self.mCoLPList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == True and mc.mRunPars.gammaSrc == "Co57")]
+        self.mCoLPList = sorted(self.mCoLPList, key = lambda rc: rc.mRunPars.gammaHeight)
 
-    self.gammaMap = {"csb": self.mCsBareList, "cslp": self.mCsLpList, "cob": self.mCoBareList, "colp": self.mCoLPList}
+        self.gammaMap.update({"cob": self.mCoBareList, "colp": self.mCoLPList}) ##xx issues here
 
     ## other data\
     return
@@ -84,13 +92,16 @@ class MCdataSet(object):
   def print(self):
     print("\n---- mcDataSet.print() ----")
     print(self.fpath, "\n")
-    print("self.mCsBareList[0]", self.mCsBareList[0].mPhysPars)
-    print("self.mCsBareList[0]", self.mCsBareList[0].mRunPars)
-    # print("Cs Bare heights")
-    [print(mc.mRunPars.gammaHeight, end = " ") for mc in self.mCsBareList];
+    
+    if hasattr(self, "mCsBareList"):
+        print("self.mCsBareList[0]", self.mCsBareList[0].mPhysPars)
+        print("self.mCsBareList[0]", self.mCsBareList[0].mRunPars)
+        # print("Cs Bare heights")
+        [print(mc.mRunPars.gammaHeight, end = " ") for mc in self.mCsBareList];
 
-    print("\nself.mCoBareList[0]", self.mCoBareList[0].mRunPars)
-    [print(mc.mRunPars.gammaHeight, end = " ") for mc in self.mCoBareList]
+    if hasattr(self, "mCoBareList"):
+        print("\nself.mCoBareList[0]", self.mCoBareList[0].mRunPars)
+        [print(mc.mRunPars.gammaHeight, end = " ") for mc in self.mCoBareList]
     print()
     return
   
@@ -105,7 +116,7 @@ class MCdataSet(object):
     if a == True:
       if verbose:
         print("\nphys Pars consistent for", self.fpath)
-        print(self.mCsBareList[0].mPhysPars)
+        print(self.mAllRuns[0].mPhysPars)
       return a
     else:
       print("ERROR, physPars inconsistent for", self.fpath)
