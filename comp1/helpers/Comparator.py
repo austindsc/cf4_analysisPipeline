@@ -23,21 +23,66 @@ class rcMCpair(object):
     self.Nbeam = mc.Nbeam
     return
   
-  def SetBinRanges(self, firstBin = 1, verbose = 0):
+  def SetBinRanges(self, firstBin = 1, lastBin = None, mode = "bin", verbose = 0):
+    """
+    Set analysis bin ranges for data-MC comparison.
+    
+    Args:
+        firstBin: Starting bin number or x-axis value
+        lastBin: Ending bin number or x-axis value (if None, uses count limit logic)
+        mode: "bin" for bin numbers, "x" or "value" for x-axis values
+        verbose: Verbosity level
+    """
+    
+    if mode in ["x", "value"]:
+      # Convert x-axis values to bin indices
+      # Find bin indices corresponding to x values
+      data_bins = np.digitize([firstBin], self.rc.mBin_edges)[0] - 1
+      mc_bins = np.digitize([firstBin], self.mc.mBin_Edges)[0] - 1
+      self.firstBin = max(0, min(data_bins, mc_bins))
+      
+      if lastBin is not None:
+        data_last = np.digitize([lastBin], self.rc.mBin_edges)[0] - 1
+        mc_last = np.digitize([lastBin], self.mc.mBin_Edges)[0] - 1
+        self.lastBin = min(data_last, mc_last, len(self.rc.mBin_rawCounts) - 1, len(self.mc.mRaw_Counts) - 1)
+      else:
+        # Use count limit logic for lastBin
+        find_index = lambda arr, X: next((i for i, value in enumerate(arr) if value < X), len(arr) - 1)
+        dataLastBin = find_index(self.rc.mBin_rawCounts, self.countLimit)
+        mcLastBin = find_index(self.mc.mRaw_Counts, self.countLimit)
+        self.lastBin = min(dataLastBin, mcLastBin)
+    
+    else: # mode == "bin" (default)
+      self.firstBin = firstBin
+      
+      if lastBin is not None:
+        self.lastBin = min(lastBin, len(self.rc.mBin_rawCounts) - 1, len(self.mc.mRaw_Counts) - 1)
+      else:
+        # Use count limit logic for lastBin (original behavior)
+        find_index = lambda arr, X: next((i for i, value in enumerate(arr) if value < X), len(arr) - 1)
+        dataLastBin = find_index(self.rc.mBin_rawCounts, self.countLimit)
+        mcLastBin = find_index(self.mc.mRaw_Counts, self.countLimit)
+        self.lastBin = min(dataLastBin, mcLastBin)
 
-    self.firstBin = firstBin
-
-    find_index = lambda arr, X: next((i for i, value in enumerate(arr) if value < X), len(arr) - 1)
-    dataLastBin = find_index(self.rc.mBin_rawCounts, self.countLimit)
-    mcLastBin = find_index(self.mc.mRaw_Counts, self.countLimit)
-    self.lastBin = min(dataLastBin, mcLastBin)
-
-    # safety. shouldn't enter this?
-    while self.mc.mRaw_Counts[self.lastBin] < self.countLimit or self.rc.mBin_rawCounts[self.lastBin] < self.countLimit:
+    # Safety check - ensure minimum counts in analysis range
+    while (self.lastBin > self.firstBin and 
+           (self.mc.mRaw_Counts[self.lastBin] < self.countLimit or 
+            self.rc.mBin_rawCounts[self.lastBin] < self.countLimit)):
       self.lastBin -= 1
 
     self.ndof = self.lastBin - self.firstBin
 
+    if verbose:
+      print(f"Analysis range: bins {self.firstBin} to {self.lastBin}")
+      if mode in ["x", "value"]:
+        print(f"X-range: {self.rc.mBinX[self.firstBin]:.2f} to {self.rc.mBinX[self.lastBin]:.2f}")
+      print(f"DOF: {self.ndof}")
+
+    # Check for statistics limitations
+    find_index = lambda arr, X: next((i for i, value in enumerate(arr) if value < X), len(arr) - 1)
+    dataLastBin = find_index(self.rc.mBin_rawCounts, self.countLimit)
+    mcLastBin = find_index(self.mc.mRaw_Counts, self.countLimit)
+    
     if mcLastBin < dataLastBin:
       print("YOO data limited in:", self.mc.mRunPars.fname) if verbose else None
       print("   mc : data lastBin count = ", self.mc.mRaw_Counts[self.lastBin+1], " : ", self.rc.mBin_rawCounts[self.lastBin+1]) if verbose else None
@@ -45,13 +90,18 @@ class rcMCpair(object):
     return 1
 
   ##----------##
-  def GuessScaling(self): # this is for raw counts
+  def GetPrefac(self):
+    return self.rc.GetRunTime() / self.Nbeam
+  
+  def GuessScaling(self): # this is for raw counts in data
     # analytic scaling
     dataArea = sum(self.rc.mBin_rawCounts[self.firstBin:self.lastBin]) # counts
     # xx
-    mcAreaByRuntime = np.sum(self.mc.mRaw_Counts[self.firstBin:self.lastBin]) * self.rc.GetRunTime() / self.Nbeam # counts x time / N
+    mcAreaByRuntime = np.sum(self.mc.mRaw_Counts[self.firstBin:self.lastBin]) * self.GetPrefac() # counts x time / N
 
     self.mcScale = dataArea / mcAreaByRuntime
+    ## all this is confusing
+    ## Mdata = M_mc = M_mc_saved * scale * tdata / nbeam
     return self.mcScale # this is now proportional to the runtime. has units 1/time to turn MC to rate
 
   # def GetMCSpectrum(scaling = scaling, bin0 = 0, ):
@@ -81,6 +131,9 @@ class rcMCpair(object):
     self.nbinsUsed = self.lastBin - self.firstBin
     self.redChi2 = self.chi2/self.ndof
     return self.chi2, self.ndof
+  
+  #### for alpha analysis ####
+  # def computeChi2_
 
 # do i make another object to track chi2 scores, nuisance pars, etc?
 

@@ -323,10 +323,7 @@ class RunClass:
     return timeMin_halfPE + self.mTrueEvTime, NPElist
 
 ## methods adding since starting alpha analysis ##
-
-
-
-  def setup_forComparison_np(self, binArgs, qvar="qFlat", peCut=None):
+  def setup_forComparison_np(self, Nbins = 100, lowRange=0.5, maxRange=100.5, qvar="qFlat", peCut=None):
     """
     ROOT-agnostic setup for comparison using numpy arrays directly.
     Creates same members as setup_forComparison() but bypasses mhSpectrum.
@@ -345,16 +342,11 @@ class RunClass:
     pe_filtered = pe_array[pe_array >= peCut] if peCut is not None else pe_array
 
     # Create bin edges
-    if 'edges' in binArgs:
-      self.mBin_edges = np.array(binArgs['edges'])
-    else:
-      nbins = binArgs.get('nbins', 40)
-      low = binArgs.get('low', -0.5)
-      high = binArgs.get('high', 39.5)
-      self.mBin_edges = np.linspace(low, high, nbins + 1)
-    
-    # Create histogram
-    self.mBin_rawCounts, _ = np.histogram(pe_filtered, bins=self.mBin_edges)
+    self.mBin_edges = np.linspace(lowRange, maxRange, Nbins + 1)
+
+    # Create histogram - FIX: Use explicit range to exclude underflow/overflow
+    self.mBin_rawCounts, _ = np.histogram(pe_filtered, bins=self.mBin_edges, 
+                                         range=(self.mBin_edges[0], self.mBin_edges[-1]))
     
     # Calculate rates and bin centers
     self.mBin_rate = self.mBin_rawCounts / self.GetRunTime()

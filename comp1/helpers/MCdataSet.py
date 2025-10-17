@@ -21,6 +21,7 @@ class MCdataSet(object):
       print(files)
     # open everything as FullMCRun
     # sort by mRunPars
+    self.gammaMap = {}
 
     # loading all runs
     self.mAllRuns = [FullMCRun(macName = f[:-len(".root")], verbose = verbose) for f in files]
@@ -43,8 +44,8 @@ class MCdataSet(object):
         self.mCsBareList = sorted(self.mCsBareList, key=lambda rc: rc.mRunPars.gammaHeight) # sorting
         self.mCsLpList = [mc for mc in self.mAllRuns if (mc.mRunPars.lpFilter == True and mc.mRunPars.gammaSrc == "Cs137")]
         self.mCsLpList = sorted(self.mCsLpList, key=lambda rc: rc.mRunPars.gammaHeight) # sorting
-        
-        self.gammaMap = {"csb": self.mCsBareList, "cslp": self.mCsLpList}
+
+        self.gammaMap.update({"csb": self.mCsBareList, "cslp": self.mCsLpList})
     # [print(type(mc.mRunPars.gammaHeight)) for mc in self.mCsBareList]
 
     ## sorting Co data
@@ -66,6 +67,7 @@ class MCdataSet(object):
     return
   
   # important for searching in self for given mc run
+  # possible keys are "csb", "cslp", "cob", "colp"
   def findRunByHeight(self, height, key = "csb"):
     found = next((mc for mc in self.gammaMap.get(key) if mc.mRunPars.gammaHeight == height), None)
     if found == None:
