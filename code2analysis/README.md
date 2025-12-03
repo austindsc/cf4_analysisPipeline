@@ -6,8 +6,8 @@ NCA - get NCA from estimated Vover (already done)
 
 ### Alpha Data Analysis ###
 1. Get list of all good alpha data. This includes:
-- different heights?
-- multiple voltages
+- ?different heights?
+- ?multiple voltages?
 - different filters (bare, lp)
 
 ### Gamma Data Analysis ###
@@ -15,11 +15,20 @@ NCA - get NCA from estimated Vover (already done)
 - gamma sources
 - background runs
 - different heights
-- multiple voltages
+- ?multiple voltages?
 - different filters (bare, lp)
 
 2. Somehow organize this data.
 3. write some usable code to analyze all the data. Output bkg corrected spectra. save them to files (remain organized)
+
+repeat analysis with many voltage data later
+
+## Analysis Steps ##
+__LP data__
+1. background + spectra building script
+   1. save BKG histogram at TH1
+2. run script in notebook. load .root file
+3. then commence to fitting MC data
 
 ---
 Variables to constrain:

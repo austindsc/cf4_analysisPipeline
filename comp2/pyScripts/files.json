@@ -1,0 +1,10 @@
+{
+  "files":{
+  "dataRoot": "/procData/analysis1/",
+  "runDir": "runLists/",
+  // "runList": "CoList_LP_fineCol.txt",
+  "runList": 202204121257,
+  "filePattern": "npv1_{}.root",
+  "treeName": "tt"
+  }
+}
