@@ -1,6 +1,6 @@
   {
     "analysis":{
-    "verbose": 1,
+    "verbose": 0,
 
     "sumRuns": true, // only needed when multiple runs (bkg)
     "useRate": true, // use rate spectrum (vs total counts)

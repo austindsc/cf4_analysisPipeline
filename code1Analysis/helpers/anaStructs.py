@@ -110,7 +110,7 @@ class RunClass:
       self.mBinX = self.mBin_edges[:-1]
     return True
   
-  def mpl_hist(self, ax, rate = False,  **kwargs):
+  def mpl_hist(self, ax, rate = False,  **kwargs): # help plotting
     weights = self.mBin_rawCounts
     if rate == True:
       weights = self.mBin_rate

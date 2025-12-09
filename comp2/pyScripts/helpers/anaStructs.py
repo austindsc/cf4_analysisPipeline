@@ -85,14 +85,14 @@ def getDate(runID):
 ## ---------------------------------------------------------------- ##
 class RunClass:
 
-  def __init__(self, run, ttree, nChan = 3):
+  def __init__(self, run, ttree, nChan = 3, fname = ""):
     self.id = run #run ID (from integer)
     self.tt = ttree
     self.label=""
     self.mDate = getDate(run)
     self.mChannels = [Channel(i) for i in range(nChan)]
     self.mHeight = 0 #0 means background
-    self.mFname = str(run)
+    self.mFname = fname
     return
   
   def setup_forComparison(self):
@@ -201,9 +201,10 @@ class RunClass:
     return None
 
   ## compute SPE for all channels
-  def computeSPE(self, width = 15, verbose = True, varname = "qFlat", channels = [0, 1, 2], nbins = 100, specialCase = 0):
+  def computeSPE(self, width = 15, verbose = True, varname = "qFlat", channels = [0, 1, 2], nBins = 100, specialCase = 0):
     for ich in channels:
-      tempSPE = GETSPE.getSPEVval2(self.tt, width, verbose, varname, ich, str(self.id), nbins, specialCase)
+      tempSPE = GETSPE.getSPEVval2(self.tt, width, verbose, varname, ich, str(self.id), nBins = nBins, specialCase = specialCase)
+      # tempSPE = GETSPE.getSPEVval(self.tt, width, verbose, varname, ich, str(self.id))
       self.GetChan(ich).addSpe(tempSPE)
     return
 
@@ -353,6 +354,12 @@ class RunClass:
     self.mBinX = self.mBin_edges[:-1] + np.diff(self.mBin_edges) / 2
     
     return True
+  
+  def GetNP_integral(self, xLow, xHigh, option="rate"):
+    """Get integral of numpy histogram between xLow and xHigh."""
+    bin_mask = (self.mBinX >= xLow) & (self.mBinX <= xHigh)
+    integral = np.sum(self.mBin_rate[bin_mask]) if option == "rate" else np.sum(self.mBin_rawCounts[bin_mask])
+    return integral
 
 ## ---------------------------------------------------------------- ##
 class Channel:

@@ -28,7 +28,7 @@ ROOT.gROOT.SetBatch(False)
 ROOT.gErrorIgnoreLevel = ROOT.kError # suppress warnings for peak buffer
 
 ## Atown's stuff
-sys.path.append("../")
+sys.path.append("../") # to get globalsC2
 from globalsC2 import *
 
 import helpers.anaStructs as ANAS # includes SORTING class/namespace
@@ -88,6 +88,75 @@ def th1_to_numpy(h):
   errors = np.fromiter((h.GetBinError(i + 1) for i in range(nb)), dtype=float, count=nb)
   return edges, counts, errors
 
+## 
+def ExtractSPE(fileConfig, anaConfig='analysis.json', argRunList = None):
+  """Extract SPE values for all runs without building full histograms.
+  
+  Returns:
+    runIDs: list of run IDs
+    speValues: list of [spe_ch0, spe_ch1, spe_ch2] for each run
+  """
+  # Load configs
+  with open(fileConfig) as f:
+    fileCfgDict = json.load(f)
+  with open(anaConfig) as f:
+    anaDict = json.load(f)
+
+  anaCfg = AnalysisConfig(anaDict)
+  fileCfg = FileConfig(fileCfgDict)
+  print(fileCfg.inputDict)
+
+  # Resolve data path and run list
+  dataPath = fileCfg.dataRoot
+  file_pattern = fileCfg.filePattern
+  runs = fileCfg.inputDict.get("runList", {})
+  if argRunList is not None:
+    runs = argRunList
+  elif type(runs) is str:
+    runs = np.loadtxt(os.path.join(COMP2PATH, "runLists", fileCfg.runList), dtype=str).tolist()
+  elif type(runs) is list:
+    runs = runs
+  elif type(runs) is int:
+    runs = [runs]
+  print("getting runs:", runs) if VERBOSE else None
+  
+  # File checks
+  existing = []
+  MakePath = lambda run: os.path.join(CF4HOME, dataPath, file_pattern.format(run))
+  for run in runs:
+    if os.path.isfile(MakePath(run)):
+      existing.append(run)
+
+  # Extract SPE for each run
+  runIDs = []
+  speValues = []
+  tFiles = []
+  rcObjList = []
+
+  for run in existing:
+    fpath = MakePath(run)
+    f = ROOT.TFile.Open(fpath)
+    if not f or f.IsZombie():
+      continue
+    tFiles.append(f)
+    tt = f.Get(fileCfg.treeName)
+    if tt is None:
+      continue
+
+    rc = ANAS.RunClass(run, tt, fname=fpath)
+    rc.computeSPE(width=anaCfg.speWidth, verbose=anaCfg.verbose, varname=anaCfg.qvar, channels=[i for i in range(anaCfg.nChan)], nBins = anaCfg.nBins)
+    
+    rcObjList.append(rc)
+    runIDs.append(run)
+    speValues.append([rc.GetChan(i).mSpe for i in range(anaCfg.nChan)])
+
+  return runIDs, speValues, rcObjList, tFiles
+
+
+# def CallUprootSetup(rcList):
+#   """Call UprootConstructor for each RunClass in rcList."""
+#   for rc in rcList:
+#     rc.UprootConstructor()
 
 def Build_histogram(fileConfig, anaConfig='analysis.json'):
   """Light refactor: load configs, check files, construct a ROOT TH1 and a numpy container.
@@ -114,7 +183,7 @@ def Build_histogram(fileConfig, anaConfig='analysis.json'):
   if not isinstance(runs, list):
     runs = [runs]
   if isinstance(runs, str):
-    runs = np.loadtxt(os.path.join(THISPATH, "runLists", fileCfg.runList), dtype=str).tolist()
+    runs = np.loadtxt(os.path.join(COMP2PATH, "runLists", fileCfg.runList), dtype=str).tolist()
 
   # File checks (optional bookkeeping)
   existing, missing = [], []
@@ -151,7 +220,8 @@ def Build_histogram(fileConfig, anaConfig='analysis.json'):
       continue
     ## actual physics
     rc = ANAS.RunClass(run, tt)
-    rc.computeSPE(width=anaCfg.speWidth, verbose=anaCfg.verbose, varname=anaCfg.qvar, channels=[i for i in range(anaCfg.nChan)])
+    rc.computeSPE(width=anaCfg.speWidth, verbose=anaCfg.verbose, varname=anaCfg.qvar, nBins = 200, channels=[i for i in range(anaCfg.nChan)])
+    rc.UprootConstructor()
     rcList.append(rc)
     speList.append([[chan.mSpe.spe, chan.mSpe.chi2] for chan in rc.mChannels]) # for possible bookkeeping
     

@@ -1,0 +1,21 @@
+  {
+    "analysis":{
+    "verbose": 0,
+
+    "sumRuns": true, // only needed when multiple runs (bkg)
+    "useRate": true, // use rate spectrum (vs total counts)
+
+    "binLow": 0.0,
+    "binHigh": 1000,
+    "nBins": 200,
+
+    "nchan": 3, // don't change this
+    "qvar": "qFlat",
+    // "qvar": "qFixed",
+    // "qvar": "qRCFixed",
+    // "qvar": "qRCFlat",
+
+    "peCut": 0.5,
+    "speWidth": 15, // for fitting, initial guess
+  }
+}

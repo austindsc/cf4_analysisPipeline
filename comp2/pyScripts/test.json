@@ -1,0 +1,7 @@
+{
+  "files":{
+  "dataRoot": "/procData/analysis1/",
+  "runList": "CoList_LP_fineCol.txt",
+  "filePattern": "npv1_{}.root"
+  }
+}
