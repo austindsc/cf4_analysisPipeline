@@ -3,7 +3,7 @@
   "dataRoot": "/procData/analysis1/",
   "runDir": "runLists/",
   // "runList": "CoList_LP_fineCol.txt",
-  "runList": "bkg_voltage_runs.txt",
+  // "runList": "CoLists/LPfilter_april_48V_fineCol_bkg.txt",
   // "runList": 202204121257,
   "filePattern": "npv1_{}.root",
   "treeName": "tt"

@@ -6,7 +6,7 @@
     "useRate": true, // use rate spectrum (vs total counts)
 
     "binLow": 0.5,
-    "binHigh": 100.5,
+    "binHigh": 50.5,
     "nBins": 50,
 
     "nchan": 3, // don't change this

@@ -95,6 +95,37 @@ class RunClass:
     self.mFname = fname
     return
   
+  ## for averaging
+  @classmethod
+  def copy_rc_empty(cls, rcIn, name=""):
+    newRc = cls(run = -1, ttree = None, nChan = 3, fname = name)
+    newRc.mBin_edges = copy.deepcopy(rcIn.mBin_edges)
+    newRc.mBinX = copy.deepcopy(rcIn.mBinX)
+    newRc.mBin_rawCounts = np.zeros_like(rcIn.mBin_rawCounts)
+    return newRc
+  
+  ## more averaging
+  def AverageRCs(self, rcList):
+    totalRunTime = 0
+    for rc in rcList:
+      self.mBin_rawCounts += rc.mBin_rawCounts
+      totalRunTime += rc.GetRunTime()
+    
+    self.mBin_rate = self.mBin_rawCounts / totalRunTime
+    self.mBin_rateError = np.sqrt(self.mBin_rawCounts) / totalRunTime
+    return
+  
+  @classmethod
+  def CombineRCs(cls, rcList, name="combined"):
+    ## check that all have same binning
+    for rc in rcList:
+      if not np.array_equal(rc.mBin_edges, rcList[0].mBin_edges):
+        raise ValueError("All RunClass objects must have the same binning to combine.")
+    newRc = cls.copy_rc_empty(rcList[0], name=name)
+    newRc.AverageRCs(rcList)
+    return newRc
+  
+  ########## root stuff below (until np mentioned) ##########
   def setup_forComparison(self):
     # do a bunch of stuff to get some bins. moving to ROOT agnostic approach (but requires root spectrum)
     # for comparison to data
@@ -109,13 +140,6 @@ class RunClass:
       self.mBin_edges = np.array([self.mhSpectrum.GetBinLowEdge(i) for i in range(1, self.mhSpectrum.GetNbinsX() + 2)])
       self.mBinX = self.mBin_edges[:-1]
     return True
-  
-  def mpl_hist(self, ax, rate = False,  **kwargs):
-    weights = self.mBin_rawCounts
-    if rate == True:
-      weights = self.mBin_rate
-    ax.hist(x = self.mBinX, bins = self.mBin_edges, weights = weights, **kwargs)    
-    return
   
   def GetChan(self, index):
     return self.mChannels[index]
@@ -322,7 +346,7 @@ class RunClass:
     timeMin_halfPE[timeMin_halfPE == np.inf] = 0 # fix previous step
     self.mTimeMin_peCut = timeMin_halfPE
     return timeMin_halfPE + self.mTrueEvTime, NPElist
-
+  
 ## methods adding since starting alpha analysis ##
   def setup_forComparison_np(self, Nbins = 100, lowRange=0.5, maxRange=100.5, qvar="qFlat", peCut=None):
     """
@@ -351,9 +375,25 @@ class RunClass:
     
     # Calculate rates and bin centers
     self.mBin_rate = self.mBin_rawCounts / self.GetRunTime()
+    self.mBin_rateError = np.sqrt(self.mBin_rawCounts) / self.GetRunTime()
     self.mBinX = self.mBin_edges[:-1] + np.diff(self.mBin_edges) / 2
     
     return True
+  
+  def mpl_hist(self, ax, rate = False,  **kwargs):
+    weights = self.mBin_rawCounts
+    if rate == True:
+      weights = self.mBin_rate
+    ax.hist(x = self.mBinX, bins = self.mBin_edges, weights = weights, **kwargs)    
+    return
+  
+  def mpl_errorbar(self, ax, rate = False, **kwargs):
+    y = self.mBin_rate if rate else self.mBin_rawCounts
+    yerr = self.mBin_rateError if rate else np.sqrt(self.mBin_rawCounts)
+    ax.errorbar(self.mBinX, y, yerr=yerr, **kwargs)
+    return
+  
+  def
   
   def GetNP_integral(self, xLow, xHigh, option="rate"):
     """Get integral of numpy histogram between xLow and xHigh."""

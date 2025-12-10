@@ -40,6 +40,10 @@ class AnalysisConfig:
   def __init__(self, config_dict):
     strAna = "analysis"
     
+    if type(config_dict) is str:
+      with open(config_dict) as f:
+        config_dict = json.load(f)
+    
     self.inputDict = config_dict.get(strAna)
     # Data analysis parameters
     self.nChan = config_dict.get(strAna).get("nchan")
@@ -69,7 +73,7 @@ class FileConfig:
     self.dataRoot = config_dict.get(strFiles).get("dataRoot")
     self.dataRoot = self.dataRoot.lstrip('/')
     
-    self.runList = config_dict.get(strFiles).get("runList")
+    self.runList = config_dict.get(strFiles).get("runList", None)
     self.filePattern = config_dict.get(strFiles).get("filePattern", "npv1_{}.root")
     self.treeName = config_dict.get(strFiles).get("treeName", "tt")
     pass
@@ -88,7 +92,29 @@ def th1_to_numpy(h):
   errors = np.fromiter((h.GetBinError(i + 1) for i in range(nb)), dtype=float, count=nb)
   return edges, counts, errors
 
-## 
+def SelectRunList(fileCfg, argRunList=None):
+  """Determine the run list to use based on FileConfig and optional argument.
+  
+  Returns:
+    runIDlist: list of run IDs to process
+  """
+  runIDlist = None
+  if fileCfg.runList is None and argRunList is None:
+    raise RuntimeError("No run list provided in fileConfig or argument.")
+    return None
+  elif fileCfg.runList is None:
+    runIDlist = argRunList
+    argRunList = [argRunList] if isinstance(argRunList, int) else argRunList
+  elif type(fileCfg.runList) is str:
+    runIDlist = np.loadtxt(os.path.join(COMP2PATH, fileCfg.runDir, fileCfg.runList), usecols=0, dtype=str).tolist()
+  elif hasattr(fileCfg.runList, '__iter__'):
+    runIDlist = fileCfg.runList
+  else:
+    print("ERROR: unrecognized type for runList in fileConfig:", type(fileCfg.runList))
+    return None
+  return runIDlist
+
+## can give it fileConfig, and override runlist with argRunList if you want
 def ExtractSPE(fileConfig, anaConfig='analysis.json', argRunList = None):
   """Extract SPE values for all runs without building full histograms.
   
@@ -104,28 +130,23 @@ def ExtractSPE(fileConfig, anaConfig='analysis.json', argRunList = None):
 
   anaCfg = AnalysisConfig(anaDict)
   fileCfg = FileConfig(fileCfgDict)
-  print(fileCfg.inputDict)
+  # print(fileCfg.inputDict)
 
   # Resolve data path and run list
   dataPath = fileCfg.dataRoot
   file_pattern = fileCfg.filePattern
-  runs = fileCfg.inputDict.get("runList", {})
-  if argRunList is not None:
-    runs = argRunList
-  elif type(runs) is str:
-    runs = np.loadtxt(os.path.join(COMP2PATH, "runLists", fileCfg.runList), dtype=str).tolist()
-  elif type(runs) is list:
-    runs = runs
-  elif type(runs) is int:
-    runs = [runs]
-  print("getting runs:", runs) if VERBOSE else None
+  runIDlist = SelectRunList(fileCfg, argRunList)
   
   # File checks
   existing = []
   MakePath = lambda run: os.path.join(CF4HOME, dataPath, file_pattern.format(run))
-  for run in runs:
+  for run in runIDlist:
     if os.path.isfile(MakePath(run)):
       existing.append(run)
+  if len(existing) == 0:
+    print("ERROR: No existing files found for SPE extraction.")
+    print("Checked runs:", runIDlist)
+    return [], [], [], []
 
   # Extract SPE for each run
   runIDs = []
@@ -149,6 +170,10 @@ def ExtractSPE(fileConfig, anaConfig='analysis.json', argRunList = None):
     rcObjList.append(rc)
     runIDs.append(run)
     speValues.append([rc.GetChan(i).mSpe for i in range(anaCfg.nChan)])
+    
+    ## do this here?
+    rc.UprootConstructor()
+    rc.setup_forComparison_np(Nbins = anaCfg.nBins, lowRange=anaCfg.binLow, maxRange=anaCfg.binHigh, qvar=anaCfg.qvar)
 
   return runIDs, speValues, rcObjList, tFiles
 
@@ -158,7 +183,7 @@ def ExtractSPE(fileConfig, anaConfig='analysis.json', argRunList = None):
 #   for rc in rcList:
 #     rc.UprootConstructor()
 
-def Build_histogram(fileConfig, anaConfig='analysis.json'):
+def Build_histogram(fileConfig, anaConfig='analysis.json', argRunList = None):
   """Light refactor: load configs, check files, construct a ROOT TH1 and a numpy container.
 
   Returns (hReference, hNp) where:
@@ -178,17 +203,12 @@ def Build_histogram(fileConfig, anaConfig='analysis.json'):
   # Resolve data path and run list using FileConfig class
   dataPath = fileCfg.dataRoot
   file_pattern = fileCfg.filePattern
-  runs = fileCfg.inputDict.get("runList")
-  # check if runs isnt a list
-  if not isinstance(runs, list):
-    runs = [runs]
-  if isinstance(runs, str):
-    runs = np.loadtxt(os.path.join(COMP2PATH, "runLists", fileCfg.runList), dtype=str).tolist()
-
+  runIDList = SelectRunList(fileCfg, argRunList)
+  
   # File checks (optional bookkeeping)
   existing, missing = [], []
   MakePath = lambda run: os.path.join(CF4HOME, dataPath, file_pattern.format(run))
-  for run in runs:
+  for run in runIDList:
     path = MakePath(run)
     relPath = os.path.join(dataPath, file_pattern.format(run))
     if os.path.isfile(path):
