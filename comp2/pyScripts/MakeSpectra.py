@@ -115,7 +115,7 @@ def SelectRunList(fileCfg, argRunList=None):
   return runIDlist
 
 ## can give it fileConfig, and override runlist with argRunList if you want
-def ExtractSPE(fileConfig, anaConfig='analysis.json', argRunList = None):
+def ExtractSPE(fileConfig, anaConfig='speAnalysis.json', argRunList = None):
   """Extract SPE values for all runs without building full histograms.
   
   Returns:
@@ -177,6 +177,15 @@ def ExtractSPE(fileConfig, anaConfig='analysis.json', argRunList = None):
 
   return runIDs, speValues, rcObjList, tFiles
 
+## use this to move to coarser binning after calling extractSPE
+def RebinRCObjects(rcList, anaConfig='analysis.json'):
+  with open(anaConfig) as f:
+    anaDict = json.load(f)
+  anaCfg = AnalysisConfig(anaDict)
+  
+  for rc in rcList:
+    rc.setup_forComparison_np(Nbins = anaCfg.nBins, lowRange=anaCfg.binLow, maxRange=anaCfg.binHigh, qvar=anaCfg.qvar, peCut = anaCfg.peCut)
+  return None
 
 # def CallUprootSetup(rcList):
 #   """Call UprootConstructor for each RunClass in rcList."""

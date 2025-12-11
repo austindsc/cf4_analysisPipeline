@@ -125,6 +125,19 @@ class RunClass:
     newRc.AverageRCs(rcList)
     return newRc
   
+  def BackgroundSubtraction(self, rcbkg):
+    ## existing members are: mBin_edges, mBinX, mBin_rawCounts, mBin_rate, mBin_rateError
+    
+    Nsignal = self.mBin_rawCounts - rcbkg.mBin_rate * self.GetRunTime()
+    sigmaBkg = np.sqrt( (self.GetRunTime() * rcbkg.mBin_rateError)**2 + rcbkg.mBin_rate * self.GetRunTime() )
+    error_signal = np.sqrt( Nsignal + sigmaBkg**2 )
+  
+    self.BkgCorrected_rawCounts = Nsignal
+    self.BkgCorrected_errors = error_signal
+    self.BkgCorrected_rate = Nsignal / self.GetRunTime()
+    self.BkgCorrected_rateError = error_signal / self.GetRunTime()
+    return
+  
   ########## root stuff below (until np mentioned) ##########
   def setup_forComparison(self):
     # do a bunch of stuff to get some bins. moving to ROOT agnostic approach (but requires root spectrum)
@@ -380,20 +393,24 @@ class RunClass:
     
     return True
   
-  def mpl_hist(self, ax, rate = False,  **kwargs):
-    weights = self.mBin_rawCounts
-    if rate == True:
-      weights = self.mBin_rate
+  ## plotting helpers
+  def mpl_hist(self, ax, rate = False, bkgCorrected = False, **kwargs):
+    weights = self.mBin_rawCounts if rate == False else self.mBin_rate
+    
+    if bkgCorrected == True and hasattr(self, "BkgCorrected_rawCounts"):
+      weights = self.BkgCorrected_rate if rate else self.BkgCorrected_rawCounts
+    
     ax.hist(x = self.mBinX, bins = self.mBin_edges, weights = weights, **kwargs)    
     return
   
-  def mpl_errorbar(self, ax, rate = False, **kwargs):
-    y = self.mBin_rate if rate else self.mBin_rawCounts
+  def mpl_errorbar(self, ax, rate = False, bkgCorrected = False, **kwargs):
+    weights = self.mBin_rate if rate else self.mBin_rawCounts
     yerr = self.mBin_rateError if rate else np.sqrt(self.mBin_rawCounts)
-    ax.errorbar(self.mBinX, y, yerr=yerr, **kwargs)
+    if bkgCorrected == True and hasattr(self, "BkgCorrected_rawCounts"):
+      weights = self.BkgCorrected_rate if rate else self.BkgCorrected_rawCounts
+      yerr = self.BkgCorrected_rateError if rate else self.BkgCorrected_errors
+    ax.errorbar(self.mBinX, weights, yerr=yerr, **kwargs)
     return
-  
-  def
   
   def GetNP_integral(self, xLow, xHigh, option="rate"):
     """Get integral of numpy histogram between xLow and xHigh."""
