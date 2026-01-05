@@ -1,3 +1,6 @@
+notes
+get picklelite a bit more robust wrt paths abd stuff
+
 # Data-Monte Carlo Comparison Workflow
 
 ## Overview

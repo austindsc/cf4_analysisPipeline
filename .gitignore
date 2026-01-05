@@ -9,6 +9,12 @@ procData/
 *.log
 *.err
 
+# Hold/temporary directories
+*/temp/
+*/tmp/
+*/hold*/
+**/saved_spectraTest/
+
 # Python cache and bytecode
 __pycache__/
 */__pycache__/
@@ -63,8 +69,3 @@ procData/VIEW*
 *.csv
 *.dat
 *.txt
-
-# Hold/temporary directories
-*/temp/
-*/tmp/
-*/hold*/
