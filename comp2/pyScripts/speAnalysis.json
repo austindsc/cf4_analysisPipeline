@@ -10,10 +10,10 @@
     "nBins": 200,
 
     "nchan": 3, // don't change this
-    "qvar": "qFlat",
+    // "qvar": "qFlat",
     // "qvar": "qFixed",
     // "qvar": "qRCFixed",
-    // "qvar": "qRCFlat",
+    "qvar": "qRCFlat",
 
     "peCut": 0.5,
     "speWidth": 15, // for fitting, initial guess

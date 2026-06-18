@@ -1,0 +1,21 @@
+{"mc_analysis":{
+    // "NCA": 0.35, // # first VUV4 paper, 163K
+    "NCA": 0.17, // our SiPM is VUV4-Q-50, second batch according to slope from nEXO paper. 48 V is 4.5V (from noise_extraction.ipynb)
+  },
+  "experiment":{
+    "heightScale": 32
+  },
+  "comparison":{
+    "rawCounts": true, // false: use rate spectrum
+    "chi2": true, // compute chi2, other option will be likelihood to include low count bins
+    
+    "hSkipList":[-1, 0],
+    "compFlag": "countLimit", // "countLimit": auto upper limit by MC stats; "fixed": fixed PE range
+    "countOption": "both", // which histogram to check for count limit: "both", "mc", "data"
+    "compPE_low": 1, // [fixed mode] lower PE value; uses nearest bin center (1.0 PE = bin index 0, i.e. the 1PE bin IS included)
+    "compPE_high": 10, // [fixed mode] upper PE value (inclusive)
+    
+    "compBin_low": 1, // [countLimit mode] first bin INDEX to include (0-based). 0 = 1PE bin included; 1 = skip 1PE bin, start at 2PE
+    "compCounts_high": 10 // [countLimit mode] upper limit set where MC (or data/both) counts first drop below this value
+  }
+}

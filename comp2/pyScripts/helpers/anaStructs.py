@@ -93,6 +93,8 @@ class RunClass:
     self.mChannels = [Channel(i) for i in range(nChan)]
     self.mHeight = 0 #0 means background
     self.mFname = fname
+    self.mNEvents = int(ttree.GetEntries()) if ttree is not None else -1
+    # self.mNEvents = int(69)
     return
   
   ## for averaging
@@ -164,8 +166,8 @@ class RunClass:
     if hasattr(self, 'mRate'):
       return self.mRate
     else:
-      self.mRate = self.tt.GetEntries()/self.GetRunTime()
-      self.mRateError = np.sqrt(self.tt.GetEntries())/self.GetRunTime()
+      self.mRate = self.mNEvents/self.GetRunTime()
+      self.mRateError = np.sqrt(self.mNEvents)/self.GetRunTime()
       return self.mRate
   
   def GetRateError(self):
@@ -189,7 +191,7 @@ class RunClass:
       fullCount = 2**31 - 1
       lastTime = int(evTime[0]) # got first time
 
-      for i in range(1, self.tt.GetEntries()):
+      for i in range(1, self.mNEvents):
         self.tt.GetEntry(i)
         newTime = int(evTime[0])
 
@@ -204,7 +206,7 @@ class RunClass:
 
   def print(self):
     print("\nrunID:", self.id)
-    print("Nevents: %0.2f,   time: %0.2f min" % (self.tt.GetEntries(), self.GetRunTime() / 60))
+    print("Nevents: %0.2f,   time: %0.2f min" % (self.mNEvents, self.GetRunTime() / 60))
     print("average Rate: %0.2f Hz" % self.GetRate())
     if self.mHeight != 0:
       print("height = %0.2f" % self.mHeight)
@@ -290,7 +292,7 @@ class RunClass:
     self.tt.SetBranchAddress("evTime", evTime)
     self.tt.GetEntry(0)
     lastTime = evTime[0]
-    for i in range(1, self.tt.GetEntries()):
+    for i in range(1, self.mNEvents):
       self.tt.GetEntry(i)
       newTime = evTime[0]
       deltaTime = (newTime-lastTime) * 8 * 1e-9
@@ -339,26 +341,29 @@ class RunClass:
     self.mTrueEvTime = evTime + rollTime * mask
     return self.mTrueEvTime
 
+  # need to call 'BuildCorrectEventTimes() first
+  # this builds the pulse time within event and adds it to the true event time
+  # returns timeMin with PE cut applied (in ns) and NPElist (for all events)
   def BuildCorrectEventPulseTimes(self, qvar, peCut = 0.5): # in ns
     # data is from my analysis code so times already in ns
     if not hasattr(self, "mttUp"):
       print("ERROR: doesn't have uproot TTree")
       sys.exit(1)
-    # need to call 'BuildCorrectEventTimes() first
-    time = np.array(self.mttUp["timeMin"].array())
+    pulseTimes = np.array(self.mttUp["timeMin"].array()) # time of waveform minimum (pulse peak)
     qList = np.array(self.mttUp[qvar].array())
     chanPEList = qList/np.array([self.GetSPE(0), self.GetSPE(1), self.GetSPE(2)])
-    NPElist = np.sum(chanPEList, axis=1)
+    # chanPEList = np.sum(chanPEList, axis=1)
   
     # filter for PE > 0.5
-    peTimeMask = chanPEList > peCut
-    # print(peTimeMask[0:10])
-    timeMinmasked = time * peTimeMask
-    timeMinmasked[timeMinmasked == 0] = np.inf
-    timeMin_halfPE = np.min(timeMinmasked, axis=1)
-    timeMin_halfPE[timeMin_halfPE == np.inf] = 0 # fix previous step
-    self.mTimeMin_peCut = timeMin_halfPE
-    return timeMin_halfPE + self.mTrueEvTime, NPElist
+    # peTimeMask = chanPEList > peCut
+    # # print(peTimeMask[0:10])
+    # timeMinmasked = time * peTimeMask
+    # timeMinmasked[timeMinmasked == 0] = np.inf
+    # timeMin_halfPE = np.min(timeMinmasked, axis=1)
+    # timeMin_halfPE[timeMin_halfPE == np.inf] = 0 # fix previous step
+    # self.mTimeMin_peCut = timeMin_halfPE
+    
+    return self.mTrueEvTime, pulseTimes, chanPEList
   
 ## methods adding since starting alpha analysis ##
   def setup_forComparison_np(self, Nbins = 100, lowRange=0.5, maxRange=100.5, qvar="qFlat", peCut=None):

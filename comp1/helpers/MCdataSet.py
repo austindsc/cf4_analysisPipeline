@@ -84,7 +84,8 @@ class MCdataSet(object):
     return
   
   # for "mNPE", "mNPE_corr", call one of the doCAcorrection first
-  def setup_forComparison(self, Nbins = 100, lowRange = 0.5, maxRange = 100.5, variable = "mNPE"):
+  # options are "mNPE", "mNPE_corr", "mNPE_corrGeo"
+  def setup_forComparison(self, Nbins = 100, lowRange = 0.5, maxRange = 100.5, variable = "mNPE_corr"):
     done = [mc.setup_forComparison(Nbins, lowRange, maxRange, variable) for mc in self.mAllRuns]
     return
   
