@@ -14,6 +14,8 @@
     "countOption": "both", // which histogram to check for count limit: "both", "mc", "data"
     "compPE_low": 1, // [fixed mode] lower PE value; uses nearest bin center (1.0 PE = bin index 0, i.e. the 1PE bin IS included)
     "compPE_high": 10, // [fixed mode] upper PE value (inclusive)
+
+    "specialCsSkip_bin": 3, // for Cs 1.5 cm dataset, skip this many bins starting from the lowest (e.g. 3 = skip 1PE, 2PE, 3PE bins)
     
     "compBin_low": 1, // [countLimit mode] first bin INDEX to include (0-based). 0 = 1PE bin included; 1 = skip 1PE bin, start at 2PE
     "compCounts_high": 10 // [countLimit mode] upper limit set where MC (or data/both) counts first drop below this value
